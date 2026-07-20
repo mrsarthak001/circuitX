@@ -43,6 +43,7 @@ const WAITLIST_BASE = Number.isFinite(Number(process.env.WAITLIST_BASE)) ? Numbe
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const MAIL_FROM = process.env.MAIL_FROM || 'CircuitX <onboarding@resend.dev>';
 const MAIL_REPLY_TO = process.env.MAIL_REPLY_TO || '';
+const DATABASE_URL = process.env.DATABASE_URL || '';
 
 // Event details used in emails
 const EVENT = {
@@ -59,19 +60,141 @@ if (!RESEND_API_KEY) {
   console.warn('[warn] RESEND_API_KEY not set — emails will be skipped (logged only).');
 }
 
-/* ----------------------------- data store ----------------------------- */
-function loadData() {
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  } catch (e) {
-    return { seq: 0, registrations: [] };
-  }
+/* ----------------------------- data store -----------------------------
+ * Storage is an async interface so the routes don't care which backend is
+ * used. Postgres is used when DATABASE_URL is set; otherwise a JSON file
+ * (data/registrations.json) is used for zero-setup local development.
+ *   create(fields)           -> record
+ *   list()                   -> [record] (newest first)
+ *   stats()                  -> { total, by:{pending,approved,rejected} }
+ *   setStatus(id, status)    -> { record, prev } | null
+ *   bulkSetStatus(ids, s)    -> { count, approved:[record] }  (approved = newly-approved)
+ * A record's `position` is derived as WAITLIST_BASE + id.
+ * -------------------------------------------------------------------- */
+const FIELDS = ['fullName', 'email', 'phone', 'role', 'college', 'company', 'designation', 'experience', 'linkedin', 'xurl', 'track'];
+
+/* --- Postgres implementation --- */
+function makePgStore(connString, PoolClass) {
+  const Pool = PoolClass || require('pg').Pool;
+  const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(connString);
+  const pool = new Pool({ connectionString: connString, ssl: isLocal ? false : { rejectUnauthorized: false } });
+
+  const map = (r) => ({
+    id: r.id, position: WAITLIST_BASE + r.id, status: r.status,
+    createdAt: (r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at),
+    updatedAt: (r.updated_at instanceof Date ? r.updated_at.toISOString() : r.updated_at),
+    fullName: r.full_name, email: r.email, phone: r.phone, role: r.role, college: r.college,
+    company: r.company, designation: r.designation, experience: r.experience,
+    linkedin: r.linkedin, xurl: r.xurl, track: r.track,
+  });
+
+  return {
+    kind: 'postgres',
+    async init() {
+      await pool.query(`CREATE TABLE IF NOT EXISTS registrations (
+        id          SERIAL PRIMARY KEY,
+        status      TEXT NOT NULL DEFAULT 'pending',
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        full_name   TEXT, email TEXT, phone TEXT, role TEXT, college TEXT,
+        company     TEXT, designation TEXT, experience TEXT,
+        linkedin    TEXT, xurl TEXT, track TEXT
+      )`);
+    },
+    async create(f) {
+      const { rows } = await pool.query(
+        `INSERT INTO registrations (full_name,email,phone,role,college,company,designation,experience,linkedin,xurl,track)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        [f.fullName, f.email, f.phone, f.role, f.college, f.company, f.designation, f.experience, f.linkedin, f.xurl, f.track]
+      );
+      return map(rows[0]);
+    },
+    async list() {
+      const { rows } = await pool.query('SELECT * FROM registrations ORDER BY id DESC');
+      return rows.map(map);
+    },
+    async stats() {
+      const { rows } = await pool.query('SELECT status, count(*)::int AS n FROM registrations GROUP BY status');
+      const by = { pending: 0, approved: 0, rejected: 0 };
+      let total = 0;
+      rows.forEach((r) => { by[r.status] = r.n; total += r.n; });
+      return { total, by };
+    },
+    async setStatus(id, status) {
+      const cur = await pool.query('SELECT status FROM registrations WHERE id=$1', [id]);
+      if (!cur.rows.length) return null;
+      const prev = cur.rows[0].status;
+      const { rows } = await pool.query(
+        'UPDATE registrations SET status=$1, updated_at=now() WHERE id=$2 RETURNING *', [status, id]
+      );
+      return { record: map(rows[0]), prev };
+    },
+    async bulkSetStatus(ids, status) {
+      // Coerce to a safe, inlined integer list (values are numbers only -> no injection).
+      const safe = ids.filter((n) => Number.isInteger(n));
+      if (!safe.length) return { count: 0, approved: [] };
+      const inList = safe.join(',');
+      let approved = [];
+      if (status === 'approved') {
+        const sel = await pool.query(`SELECT * FROM registrations WHERE id IN (${inList}) AND status <> 'approved'`);
+        approved = sel.rows.map(map);
+      }
+      const upd = await pool.query(`UPDATE registrations SET status=$1, updated_at=now() WHERE id IN (${inList})`, [status]);
+      return { count: upd.rowCount, approved };
+    },
+  };
 }
-function saveData(data) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+
+/* --- JSON file implementation (fallback) --- */
+function makeJsonStore() {
+  let state;
+  try { state = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { state = { seq: 0, registrations: [] }; }
+  const persist = () => { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2)); };
+  const withPos = (r) => Object.assign({}, r, { position: WAITLIST_BASE + r.id });
+
+  return {
+    kind: 'json',
+    async init() { /* file created lazily on first write */ },
+    async create(f) {
+      state.seq += 1;
+      const now = new Date().toISOString();
+      const rec = { id: state.seq, status: 'pending', createdAt: now, updatedAt: now };
+      FIELDS.forEach((k) => { rec[k] = f[k]; });
+      state.registrations.push(rec);
+      persist();
+      return withPos(rec);
+    },
+    async list() { return state.registrations.slice().sort((a, b) => b.id - a.id).map(withPos); },
+    async stats() {
+      const by = { pending: 0, approved: 0, rejected: 0 };
+      state.registrations.forEach((r) => { by[r.status] = (by[r.status] || 0) + 1; });
+      return { total: state.registrations.length, by };
+    },
+    async setStatus(id, status) {
+      const rec = state.registrations.find((r) => r.id === id);
+      if (!rec) return null;
+      const prev = rec.status;
+      rec.status = status; rec.updatedAt = new Date().toISOString();
+      persist();
+      return { record: withPos(rec), prev };
+    },
+    async bulkSetStatus(ids, status) {
+      const now = new Date().toISOString();
+      const approved = [];
+      let count = 0;
+      state.registrations.forEach((r) => {
+        if (ids.indexOf(r.id) > -1) {
+          if (status === 'approved' && r.status !== 'approved') approved.push(withPos(r));
+          r.status = status; r.updatedAt = now; count += 1;
+        }
+      });
+      persist();
+      return { count, approved };
+    },
+  };
 }
-let store = loadData();
+
+const db = DATABASE_URL ? makePgStore(DATABASE_URL) : makeJsonStore();
 
 /* ------------------------------ helpers ------------------------------- */
 const MIME = {
@@ -242,14 +365,7 @@ async function handleApi(req, res, url) {
     if (!isEmail(body.email)) return sendJSON(res, 400, { ok: false, error: 'valid email required' });
     if (!nonEmpty(body.phone)) return sendJSON(res, 400, { ok: false, error: 'phone required' });
 
-    store.seq += 1;
-    const now = new Date().toISOString();
-    const reg = {
-      id: store.seq,
-      position: WAITLIST_BASE + store.seq,
-      status: 'pending',
-      createdAt: now,
-      updatedAt: now,
+    const reg = await db.create({
       fullName: clip(body.fullName, 120),
       email: clip(body.email, 160),
       phone: clip(body.phone, 40),
@@ -261,9 +377,7 @@ async function handleApi(req, res, url) {
       linkedin: clip(body.linkedin, 300),
       xurl: clip(body.xurl, 300),
       track: clip(body.track, 40),
-    };
-    store.registrations.push(reg);
-    saveData(store);
+    });
     sendPending(reg); // fire-and-forget: "registered, pending approval"
     return sendJSON(res, 201, { ok: true, id: reg.id, position: reg.position });
   }
@@ -275,14 +389,13 @@ async function handleApi(req, res, url) {
 
   // Admin: quick auth ping (dashboard login)
   if (pathname === '/api/stats' && req.method === 'GET') {
-    const by = { pending: 0, approved: 0, rejected: 0 };
-    store.registrations.forEach((r) => { by[r.status] = (by[r.status] || 0) + 1; });
-    return sendJSON(res, 200, { ok: true, total: store.registrations.length, by });
+    const s = await db.stats();
+    return sendJSON(res, 200, { ok: true, total: s.total, by: s.by });
   }
 
   // Admin: list registrations (newest first)
   if (pathname === '/api/registrations' && req.method === 'GET') {
-    const list = store.registrations.slice().sort((a, b) => b.id - a.id);
+    const list = await db.list();
     return sendJSON(res, 200, { ok: true, registrations: list });
   }
 
@@ -295,17 +408,8 @@ async function handleApi(req, res, url) {
       return sendJSON(res, 400, { ok: false, error: 'status must be pending, approved or rejected' });
     }
     const ids = Array.isArray(body.ids) ? body.ids.map(Number) : [];
-    const now = new Date().toISOString();
-    let count = 0;
-    const toEmail = [];
-    store.registrations.forEach((r) => {
-      if (ids.indexOf(r.id) > -1) {
-        if (status === 'approved' && r.status !== 'approved') toEmail.push(r);
-        r.status = status; r.updatedAt = now; count += 1;
-      }
-    });
-    saveData(store);
-    toEmail.forEach(sendApproved); // approval emails for the newly-approved
+    const { count, approved } = await db.bulkSetStatus(ids, status);
+    approved.forEach(sendApproved); // approval emails for the newly-approved
     return sendJSON(res, 200, { ok: true, count });
   }
 
@@ -318,14 +422,10 @@ async function handleApi(req, res, url) {
     if (!['pending', 'approved', 'rejected'].includes(status)) {
       return sendJSON(res, 400, { ok: false, error: 'status must be pending, approved or rejected' });
     }
-    const reg = store.registrations.find((r) => r.id === Number(m[1]));
-    if (!reg) return sendJSON(res, 404, { ok: false, error: 'not found' });
-    const prev = reg.status;
-    reg.status = status;
-    reg.updatedAt = new Date().toISOString();
-    saveData(store);
-    if (status === 'approved' && prev !== 'approved') sendApproved(reg); // send once, on transition
-    return sendJSON(res, 200, { ok: true, registration: reg });
+    const result = await db.setStatus(Number(m[1]), status);
+    if (!result) return sendJSON(res, 404, { ok: false, error: 'not found' });
+    if (status === 'approved' && result.prev !== 'approved') sendApproved(result.record); // send once, on transition
+    return sendJSON(res, 200, { ok: true, registration: result.record });
   }
 
   return sendJSON(res, 404, { ok: false, error: 'not found' });
@@ -359,11 +459,24 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`CircuitX server running:  http://localhost:${PORT}`);
-  console.log(`  Landing     ->  http://localhost:${PORT}/index.html`);
-  console.log(`  Register    ->  http://localhost:${PORT}/register.html`);
-  console.log(`  Dashboard   ->  http://localhost:${PORT}/dashboard.html`);
-  console.log(`  Admin token ->  ${ADMIN_TOKEN === 'circuitx-admin' ? 'circuitx-admin (default — change it!)' : '(set via ADMIN_TOKEN)'}`);
-  console.log(`  Email       ->  ${RESEND_API_KEY ? 'Resend enabled, from ' + MAIL_FROM : 'disabled (no RESEND_API_KEY)'}`);
-});
+function start() {
+  return db.init().then(() => {
+    server.listen(PORT, () => {
+      console.log(`CircuitX server running:  http://localhost:${PORT}`);
+      console.log(`  Landing     ->  http://localhost:${PORT}/index.html`);
+      console.log(`  Register    ->  http://localhost:${PORT}/register.html`);
+      console.log(`  Dashboard   ->  http://localhost:${PORT}/dashboard.html`);
+      console.log(`  Database    ->  ${db.kind === 'postgres' ? 'Postgres (DATABASE_URL)' : 'JSON file (data/registrations.json) — set DATABASE_URL for Postgres'}`);
+      console.log(`  Admin token ->  ${ADMIN_TOKEN === 'circuitx-admin' ? 'circuitx-admin (default — change it!)' : '(set via ADMIN_TOKEN)'}`);
+      console.log(`  Email       ->  ${RESEND_API_KEY ? 'Resend enabled, from ' + MAIL_FROM : 'disabled (no RESEND_API_KEY)'}`);
+    });
+  }).catch((e) => {
+    console.error('[fatal] database init failed:', e.message);
+    process.exit(1);
+  });
+}
+
+// Only auto-start when run directly (allows importing internals for tests).
+if (require.main === module) start();
+
+module.exports = { makePgStore, makeJsonStore };

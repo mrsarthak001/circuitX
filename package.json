@@ -1,12 +1,15 @@
 {
   "name": "circuitx",
   "version": "1.0.0",
-  "description": "CircuitX event site with a zero-dependency backend and admin dashboard for registrations.",
+  "description": "CircuitX event site with a Node backend (Postgres, JSON fallback), admin dashboard, and email notifications.",
   "private": true,
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
   }
 }
