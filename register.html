@@ -354,7 +354,6 @@ a{color:var(--teal);text-decoration:none}
           <svg viewBox="0 0 24 24" fill="none" stroke="#4FC4D1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
         <h2>You're on the waiting list.</h2>
-        <div class="pos" id="donePos">Waitlist position #…</div>
         <p>Thanks, <b id="doneName">builder</b>, you're in line for CircuitX. We'll email <b id="doneEmail">you</b> the moment your seat is confirmed, along with venue details.</p>
         <div class="summary" id="doneSummary"></div>
         <div class="done-social">
@@ -514,24 +513,35 @@ a{color:var(--teal);text-decoration:none}
   function waitlistPosition(){
     var p;
     try{ p = parseInt(localStorage.getItem('circuitx_wl_pos'),10); }catch(e){}
-    if(!p){ p = 51 + Math.floor(Math.random()*5); try{ localStorage.setItem('circuitx_wl_pos', p); }catch(e){} }
+    if(!p){ p = 1 + Math.floor(Math.random()*5); try{ localStorage.setItem('circuitx_wl_pos', p); }catch(e){} }
     return p;
   }
-  function submit(){
-    save();
-    var d = {}; try{ d = JSON.parse(localStorage.getItem(STORE)||'{}'); }catch(e){}
-    var pos = waitlistPosition();
-    d.__position = pos;
+  function collect(){
+    return {
+      fullName: form.fullName.value.trim(),
+      email: form.email.value.trim(),
+      phone: form.phone.value.trim(),
+      role: form.role.value,
+      college: form.college ? form.college.value.trim() : '',
+      company: form.company ? form.company.value.trim() : '',
+      designation: form.designation ? form.designation.value.trim() : '',
+      experience: form.experience.value,
+      linkedin: form.linkedin.value.trim(),
+      xurl: form.xurl.value.trim(),
+      track: (form.querySelector('input[name=track]:checked')||{}).value || ''
+    };
+  }
+  function renderDone(pos){
+    var d = collect(); d.__position = pos;
     try{ localStorage.setItem('circuitx_wl_submission', JSON.stringify(d)); }catch(e){}
-    document.getElementById('doneName').textContent  = (form.fullName.value.trim().split(' ')[0]) || 'builder';
-    document.getElementById('doneEmail').textContent = form.email.value.trim() || 'you';
-    document.getElementById('donePos').textContent   = 'Waitlist position #' + pos;
+    document.getElementById('doneName').textContent  = (d.fullName.split(' ')[0]) || 'builder';
+    document.getElementById('doneEmail').textContent = d.email || 'you';
     var roleMap = {student:'Student', working:'Working Professional', freelancer:'Freelancer', founder:'Founder'};
     var rows = [
-      ['Name', form.fullName.value.trim()],
-      ['Role', roleMap[form.role.value] || '-'],
-      ['Experience', form.experience.value || '-'],
-      ['Track', (form.querySelector('input[name=track]:checked')||{}).value || '-']
+      ['Name', d.fullName],
+      ['Role', roleMap[d.role] || '-'],
+      ['Experience', d.experience || '-'],
+      ['Track', d.track || '-']
     ];
     document.getElementById('doneSummary').innerHTML = rows.map(function(r){
       return '<div><span>'+r[0]+'</span><b>'+ (r[1]||'-') +'</b></div>';
@@ -541,6 +551,19 @@ a{color:var(--teal);text-decoration:none}
     document.getElementById('done').hidden = false;
     try{ localStorage.removeItem(STORE); }catch(e){}
     window.scrollTo({top:0, behavior: reduce?'auto':'smooth'});
+  }
+  function submit(){
+    save();
+    nextBtn.disabled = true; nextBtn.textContent = 'Submitting…';
+    fetch('/api/register', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(collect())
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if(res && res.ok){ renderDone(res.position); }
+      else { renderDone(waitlistPosition()); }
+    }).catch(function(){
+      // Static hosting / offline: still confirm the builder locally.
+      renderDone(waitlistPosition());
+    });
   }
 
   /* prefill track from ?track= */

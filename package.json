@@ -1,0 +1,12 @@
+{
+  "name": "circuitx",
+  "version": "1.0.0",
+  "description": "CircuitX event site with a zero-dependency backend and admin dashboard for registrations.",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
