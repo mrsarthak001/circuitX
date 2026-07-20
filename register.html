@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Join the Waitlist · CircuitX — Hardware + AI Buildathon</title>
+<title>Sign up · CircuitX · Hardware + AI Buildathon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -21,11 +21,11 @@
   --err:#F0785B;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-x:hidden;scroll-padding-top:88px}
 body{
   background:var(--navy);color:var(--cream);font-family:var(--body);
   font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
-  min-height:100vh;overflow-x:hidden;
+  min-height:100vh;
 }
 body::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
@@ -152,6 +152,11 @@ a{color:var(--teal);text-decoration:none}
 .done .summary div:last-child{border-bottom:0}
 .done .summary span{font-family:var(--mono);font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
 .done .summary b{color:var(--cream);font-weight:500;text-align:right}
+.done-social{margin:0 auto 26px;max-width:420px}
+.done-social-label{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+.done-social-links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.done-social-links a{font-family:var(--mono);font-size:12px;letter-spacing:.3px;color:var(--muted);border:1px solid var(--line-2);border-radius:999px;padding:9px 15px;transition:color .18s ease, border-color .18s ease}
+.done-social-links a:hover{color:var(--teal);border-color:var(--teal)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -169,16 +174,17 @@ a{color:var(--teal);text-decoration:none}
 
     <!-- LEFT RAIL -->
     <aside class="rail">
-      <div class="eyebrow">Waitlist</div>
-      <h1>Join the <span>CircuitX</span> waitlist</h1>
-      <p class="lead">CircuitX is capped at 200 solo builders. Join the waitlist and we'll confirm your seat as spots open — it takes about two minutes, and your progress is saved as you go.</p>
+      <div class="eyebrow">Sign up</div>
+      <h1>Sign up for <span>CircuitX</span></h1>
+      <p class="lead">CircuitX is capped at 200 solo builders. Sign up now and we'll confirm your seat as spots open. It takes about two minutes, and your progress is saved as you go.</p>
 
       <div class="rail-label">The event</div>
       <ul class="facts">
-        <li><span>When</span> Sat, 08 Aug 2026 · 10AM – 5PM</li>
-        <li><span>Where</span> Microsoft Campus</li>
-        <li><span>Format</span> Solo · Jetson kit provided</li>
-        <li><span>Prize pool</span> ₹50,000</li>
+        <li><span>When</span> Sat, 08 Aug 2026 · 9AM &ndash; 6PM</li>
+        <li><span>Where</span> Microsoft, Luxor North Tower, Bengaluru</li>
+        <li><span>Format</span> Solo · Hardware provided</li>
+        <li><span>Prize</span> ₹50,000 cash prize</li>
+        <li><span>Perks</span> Swags for all · Lunch on us</li>
       </ul>
       <div class="assure"><span class="dot"></span> Progress saved automatically</div>
     </aside>
@@ -292,19 +298,19 @@ a{color:var(--teal);text-decoration:none}
           <div class="step-head">
             <div class="kicker">Step 3 of 4</div>
             <h2>Where can we find your work?</h2>
-            <p class="hint">Optional, but it helps us get to know you faster.</p>
+            <p class="hint">We use these to verify builders, so both are required.</p>
           </div>
           <div class="fields">
             <div class="row2">
               <div class="field">
-                <label for="linkedin">LinkedIn <span class="opt">· optional</span></label>
+                <label for="linkedin">LinkedIn</label>
                 <input id="linkedin" name="linkedin" type="url" autocomplete="url" placeholder="linkedin.com/in/…" inputmode="url">
-                <small class="err">That doesn't look like a valid URL.</small>
+                <small class="err">Please enter a valid LinkedIn URL.</small>
               </div>
               <div class="field">
-                <label for="xurl">X (Twitter) <span class="opt">· optional</span></label>
+                <label for="xurl">X (Twitter)</label>
                 <input id="xurl" name="xurl" type="url" placeholder="x.com/…" inputmode="url">
-                <small class="err">That doesn't look like a valid URL.</small>
+                <small class="err">Please enter a valid X URL.</small>
               </div>
             </div>
           </div>
@@ -315,7 +321,7 @@ a{color:var(--teal);text-decoration:none}
           <div class="step-head">
             <div class="kicker">Step 4 of 4</div>
             <h2>Pick your product track</h2>
-            <p class="hint">You'll build on one of CraftifAI's platforms. You can switch on the day if you change your mind.</p>
+            <p class="hint">You'll build on one of CraftifAI's Orbit products. You can switch on the day if you change your mind.</p>
           </div>
           <div class="tracks">
             <label class="trackcard">
@@ -323,14 +329,14 @@ a{color:var(--teal);text-decoration:none}
               <span class="tick"></span>
               <div class="tc-tag">Track A</div>
               <div class="tc-name">FirmGen</div>
-              <div class="tc-desc">Embedded firmware & on-device control — turn models into production firmware running on Jetson.</div>
+              <div class="tc-desc">Embedded firmware &amp; on-device control. Ship production firmware on ESP32 &amp; STM32 boards.</div>
             </label>
             <label class="trackcard">
               <input type="radio" name="track" value="PipeGen">
               <span class="tick"></span>
               <div class="tc-tag">Track B</div>
               <div class="tc-name">PipeGen</div>
-              <div class="tc-desc">Perception & vision pipelines — build real-time sensing that sees, decides and acts on the edge.</div>
+              <div class="tc-desc">Perception &amp; vision pipelines. Build real-time sensing that sees, decides and acts on the edge.</div>
             </label>
           </div>
           <small class="track-err" id="trackErr">Please choose a track.</small>
@@ -347,10 +353,18 @@ a{color:var(--teal);text-decoration:none}
         <div class="check">
           <svg viewBox="0 0 24 24" fill="none" stroke="#4FC4D1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
-        <h2>You're on the waitlist.</h2>
-        <div class="pos" id="donePos">Waitlist position #—</div>
-        <p>Thanks, <b id="doneName">builder</b> — you're in line for CircuitX. We'll email <b id="doneEmail">you</b> the moment your seat is confirmed, along with venue details.</p>
+        <h2>You're on the waiting list.</h2>
+        <div class="pos" id="donePos">Waitlist position #…</div>
+        <p>Thanks, <b id="doneName">builder</b>, you're in line for CircuitX. We'll email <b id="doneEmail">you</b> the moment your seat is confirmed, along with venue details.</p>
         <div class="summary" id="doneSummary"></div>
+        <div class="done-social">
+          <div class="done-social-label">While you wait, come say hi</div>
+          <div class="done-social-links">
+            <a href="https://www.linkedin.com/company/craftifai" target="_blank" rel="noopener">Follow on LinkedIn</a>
+            <a href="https://x.com/craftifai" target="_blank" rel="noopener">Follow on X</a>
+            <a href="https://discord.gg/craftifai" target="_blank" rel="noopener">Join our Discord</a>
+          </div>
+        </div>
         <a class="btn" href="index.html" style="display:inline-block;margin-top:2px">Back to event</a>
       </div>
 
@@ -410,6 +424,7 @@ a{color:var(--teal);text-decoration:none}
   function isEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
   function isPhone(v){ return v.replace(/[^\d]/g,'').length >= 7; }
   function isUrlish(v){ v = v.trim(); if(!v) return true; return /^(https?:\/\/)?[\w.-]+\.[a-z]{2,}([\/?#].*)?$/i.test(v); }
+  function isReqUrl(v){ return v.trim() !== '' && isUrlish(v); }
 
   function validateStep(n){
     var ok = true;
@@ -427,8 +442,8 @@ a{color:var(--teal);text-decoration:none}
       }
       need(form.experience, function(v){ return !!v; });
     } else if(n === 3){
-      need(form.linkedin, isUrlish);
-      need(form.xurl,     isUrlish);
+      need(form.linkedin, isReqUrl);
+      need(form.xurl,     isReqUrl);
     } else if(n === 4){
       var chosen = !!form.querySelector('input[name="track"]:checked');
       document.getElementById('trackErr').style.display = chosen ? 'none' : 'block';
@@ -445,7 +460,7 @@ a{color:var(--teal);text-decoration:none}
         if(form.role.value==='working') return form.company.value.trim() && form.designation.value.trim();
         return true;
       },
-      3:function(){ return true; },
+      3:function(){ return isReqUrl(form.linkedin.value) && isReqUrl(form.xurl.value); },
       4:function(){ return !!form.querySelector('input[name="track"]:checked'); }
     };
     return v[n] ? v[n]() : false;
@@ -461,7 +476,7 @@ a{color:var(--teal);text-decoration:none}
       it.classList.toggle('is-done', n < current);
     });
     backBtn.hidden = (current === 1);
-    nextBtn.textContent = (current === total) ? 'Join the waitlist' : 'Continue';
+    nextBtn.textContent = (current === total) ? 'Sign up now' : 'Continue';
     var active = steps[current-1];
     var first = active.querySelector('input:not([type=radio]), select');
     if(first && !reduce){ setTimeout(function(){ first.focus({preventScroll:true}); }, 60); }
@@ -499,7 +514,7 @@ a{color:var(--teal);text-decoration:none}
   function waitlistPosition(){
     var p;
     try{ p = parseInt(localStorage.getItem('circuitx_wl_pos'),10); }catch(e){}
-    if(!p){ p = 118 + Math.floor(Math.random()*64); try{ localStorage.setItem('circuitx_wl_pos', p); }catch(e){} }
+    if(!p){ p = 51 + Math.floor(Math.random()*5); try{ localStorage.setItem('circuitx_wl_pos', p); }catch(e){} }
     return p;
   }
   function submit(){
@@ -514,12 +529,12 @@ a{color:var(--teal);text-decoration:none}
     var roleMap = {student:'Student', working:'Working Professional', freelancer:'Freelancer', founder:'Founder'};
     var rows = [
       ['Name', form.fullName.value.trim()],
-      ['Role', roleMap[form.role.value] || '—'],
-      ['Experience', form.experience.value || '—'],
-      ['Track', (form.querySelector('input[name=track]:checked')||{}).value || '—']
+      ['Role', roleMap[form.role.value] || '-'],
+      ['Experience', form.experience.value || '-'],
+      ['Track', (form.querySelector('input[name=track]:checked')||{}).value || '-']
     ];
     document.getElementById('doneSummary').innerHTML = rows.map(function(r){
-      return '<div><span>'+r[0]+'</span><b>'+ (r[1]||'—') +'</b></div>';
+      return '<div><span>'+r[0]+'</span><b>'+ (r[1]||'-') +'</b></div>';
     }).join('');
     form.style.display = 'none';
     stepper.style.display = 'none';
