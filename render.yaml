@@ -1,0 +1,28 @@
+# Render Blueprint — deploys the CircuitX Node server (serves the site + API).
+# In Render: New + > Blueprint > connect this repo. Render reads this file,
+# then prompts for the secret env vars marked `sync: false`.
+services:
+  - type: web
+    name: circuitx
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # --- Secrets: set these in the Render dashboard (never in the repo) ---
+      - key: DATABASE_URL      # Supabase SESSION POOLER string (IPv4-safe)
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ADMIN_TOKEN       # dashboard login — pick something strong
+        sync: false
+      # --- Non-secret defaults (edit as needed) ---
+      - key: MAIL_FROM
+        value: CircuitX <onboarding@resend.dev>
+      - key: MAIL_REPLY_TO
+        value: support@devaarambh.com
