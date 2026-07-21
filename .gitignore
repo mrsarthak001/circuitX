@@ -9,3 +9,5 @@ Thumbs.db
 node_modules/
 data/
 .env
+.vercel_token
+.vercel

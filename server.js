@@ -1,5 +1,5 @@
 /*
- * CircuitX backend — zero-dependency Node HTTP server.
+ * Embedded backend — zero-dependency Node HTTP server.
  *
  * Responsibilities:
  *   - Serve the static site (index.html, register.html, dashboard.html, assets)
@@ -41,13 +41,13 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'circuitx-admin';
 const WAITLIST_BASE = Number.isFinite(Number(process.env.WAITLIST_BASE)) ? Number(process.env.WAITLIST_BASE) : 0;
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const MAIL_FROM = process.env.MAIL_FROM || 'CircuitX <onboarding@resend.dev>';
+const MAIL_FROM = process.env.MAIL_FROM || 'Embedded <onboarding@resend.dev>';
 const MAIL_REPLY_TO = process.env.MAIL_REPLY_TO || '';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 
 // Event details used in emails
 const EVENT = {
-  name: 'CircuitX',
+  name: 'Embedded',
   date: 'Saturday, 08 August 2026',
   time: '9:00 AM – 6:00 PM',
   venue: 'Microsoft, Luxor North Tower, Bengaluru',
@@ -284,7 +284,7 @@ function shell(preheader, badge, badgeColor, heading, bodyHtml) {
   <tr><td align="center">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
       <tr><td style="padding:24px 40px 18px;border-bottom:1px solid #eef0f2">
-        <div style="font-size:20px;font-weight:700;letter-spacing:-.3px;color:#0f1b2d">Circuit<span style="color:#0e7d8c">X</span></div>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.3px;color:#0f1b2d">Embedde<span style="color:#0e7d8c">D</span></div>
         <div style="font-size:12px;color:#8b95a3;margin-top:3px">Hardware + AI Buildathon &middot; CraftifAI &times; DevAarambh</div>
       </td></tr>
       <tr><td style="padding:30px 40px 6px">
@@ -302,8 +302,8 @@ function shell(preheader, badge, badgeColor, heading, bodyHtml) {
       </td></tr>
       <tr><td style="padding:18px 40px 26px;border-top:1px solid #eef0f2">
         <div style="font-size:12px;color:#98a1ae;line-height:1.7">
-          You received this email because you registered for CircuitX.<br>
-          CircuitX is organised by CraftifAI &times; DevAarambh &middot; Bengaluru, India.<br>
+          You received this email because you registered for Embedded.<br>
+          Embedded is organised by CraftifAI &times; DevAarambh &middot; Bengaluru, India.<br>
           Questions? Just reply to this email.
         </div>
       </td></tr>
@@ -317,40 +317,40 @@ function para(t) { return `<p style="margin:0 0 15px;font-size:15px;line-height:
 
 function pendingEmail(reg) {
   const body = para(`Hi ${firstName(reg)},`)
-    + para(`Thanks for signing up for <b style="color:#0f1b2d">CircuitX</b>. We have received your registration and it is currently under review. We will email you as soon as your seat is confirmed.`)
+    + para(`Thanks for signing up for <b style="color:#0f1b2d">Embedded</b>. We have received your registration and it is currently under review. We will email you as soon as your seat is confirmed.`)
     + (reg.track ? para(`Track you selected: <b style="color:#0f1b2d">${esc(reg.track)}</b>`) : '');
-  return shell('We have received your CircuitX registration and it is under review.',
+  return shell('We have received your Embedded registration and it is under review.',
     'Registration received', '#b6821c', 'Thanks for registering', body);
 }
 function pendingText(reg) {
   return `Hi ${(reg.fullName||'there').split(' ')[0]},\n\n`
-    + `Thanks for signing up for CircuitX. We have received your registration and it is currently under review. We will email you as soon as your seat is confirmed.\n\n`
+    + `Thanks for signing up for Embedded. We have received your registration and it is currently under review. We will email you as soon as your seat is confirmed.\n\n`
     + (reg.track ? `Track you selected: ${reg.track}\n\n` : '')
     + `When: ${EVENT.date}, ${EVENT.time}\nWhere: ${EVENT.venue}\n\n`
-    + `You received this email because you registered for CircuitX.\nCraftifAI x DevAarambh, Bengaluru, India.`;
+    + `You received this email because you registered for Embedded.\nCraftifAI x DevAarambh, Bengaluru, India.`;
 }
 
 function approvedEmail(reg) {
   const kit = reg.track === 'FirmGen' ? 'ESP32 and STM32 boards' : reg.track === 'PipeGen' ? 'a perception rig' : 'your hardware kit';
   const body = para(`Hi ${firstName(reg)},`)
-    + para(`Good news: your registration for <b style="color:#0f1b2d">CircuitX</b> has been approved and your seat is confirmed.`)
+    + para(`Good news: your registration for <b style="color:#0f1b2d">Embedded</b> has been approved and your seat is confirmed.`)
     + para(`You are in on the <b style="color:#0f1b2d">${esc(reg.track || 'build')}</b> track. We will provide ${kit} and mentors on the floor. Please bring your laptop and chargers.`)
     + para(`We look forward to seeing you on 8 August. Come ready to build.`);
-  return shell('Your CircuitX seat is confirmed. Full event details inside.',
+  return shell('Your Embedded seat is confirmed. Full event details inside.',
     'Approved', '#1c8a4e', 'Your seat is confirmed', body);
 }
 function approvedText(reg) {
   const kit = reg.track === 'FirmGen' ? 'ESP32 and STM32 boards' : reg.track === 'PipeGen' ? 'a perception rig' : 'your hardware kit';
   return `Hi ${(reg.fullName||'there').split(' ')[0]},\n\n`
-    + `Good news: your registration for CircuitX has been approved and your seat is confirmed.\n\n`
+    + `Good news: your registration for Embedded has been approved and your seat is confirmed.\n\n`
     + `You are in on the ${reg.track || 'build'} track. We will provide ${kit} and mentors on the floor. Please bring your laptop and chargers.\n\n`
     + `When: ${EVENT.date}, ${EVENT.time}\nWhere: ${EVENT.venue}\n\n`
     + `We look forward to seeing you on 8 August. Come ready to build.\n\n`
     + `CraftifAI x DevAarambh, Bengaluru, India.`;
 }
 
-function sendPending(reg) { sendEmail(reg.email, 'Your CircuitX registration has been received', pendingEmail(reg), pendingText(reg)); }
-function sendApproved(reg) { sendEmail(reg.email, 'Your CircuitX seat is confirmed', approvedEmail(reg), approvedText(reg)); }
+function sendPending(reg) { sendEmail(reg.email, 'Your Embedded registration has been received', pendingEmail(reg), pendingText(reg)); }
+function sendApproved(reg) { sendEmail(reg.email, 'Your Embedded seat is confirmed', approvedEmail(reg), approvedText(reg)); }
 
 /* ------------------------------- routes ------------------------------- */
 async function handleApi(req, res, url) {
@@ -462,7 +462,7 @@ const server = http.createServer((req, res) => {
 function start() {
   return db.init().then(() => {
     server.listen(PORT, () => {
-      console.log(`CircuitX server running:  http://localhost:${PORT}`);
+      console.log(`Embedded server running:  http://localhost:${PORT}`);
       console.log(`  Landing     ->  http://localhost:${PORT}/index.html`);
       console.log(`  Register    ->  http://localhost:${PORT}/register.html`);
       console.log(`  Dashboard   ->  http://localhost:${PORT}/dashboard.html`);
