@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmGen Track · CircuitX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A0D14; --navy-2:#111621; --teal:#4FC4D1; --teal-dark:#128794;
+  --cream:#ECEDF0; --muted:rgba(236,237,240,.58); --faint:rgba(236,237,240,.34);
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.13);
+  --px:"JetBrains Mono", ui-monospace, monospace;
+  --body:"Space Grotesk", system-ui, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--navy);color:var(--cream);font-family:var(--body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background-image:linear-gradient(to right,rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:66px 66px;-webkit-mask-image:radial-gradient(120% 80% at 30% -5%,#000 0%,rgba(0,0,0,.5) 45%,transparent 80%);mask-image:radial-gradient(120% 80% at 30% -5%,#000 0%,rgba(0,0,0,.5) 45%,transparent 80%)}
+a{color:var(--teal)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+
+.topbar{position:sticky;top:0;z-index:20;background:rgba(10,13,20,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:1080px}
+.logo{font-family:var(--body);font-weight:700;font-size:19px;letter-spacing:-.5px;color:var(--cream);text-decoration:none}
+.logo span{color:var(--teal)}
+.top-r{display:flex;align-items:center;gap:16px}
+.back{font-family:var(--px);font-size:12.5px;letter-spacing:.4px;color:var(--muted);text-decoration:none}
+.back:hover{color:var(--cream)}
+.btn{font-family:var(--body);font-weight:600;font-size:14px;padding:11px 20px;border-radius:999px;background:var(--cream);color:#0A0D14;border:1px solid var(--cream);text-decoration:none;transition:transform .18s ease,background .18s ease}
+.btn:hover{transform:translateY(-2px);background:#fff}
+@media(max-width:520px){.back{display:none}}
+
+.hero{padding:64px 0 30px;position:relative;z-index:1}
+.crumb{font-family:var(--px);font-size:12px;letter-spacing:.5px;color:var(--muted);margin-bottom:26px}
+.crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--teal)}
+.tag{font-family:var(--px);font-weight:600;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--teal)}
+h1{font-family:var(--body);font-weight:700;font-size:clamp(44px,8vw,72px);line-height:1;letter-spacing:-2.5px;margin:14px 0 16px}
+.tagline{font-size:clamp(18px,2.4vw,22px);color:var(--cream);opacity:.9;max-width:620px;line-height:1.4}
+
+main{padding:20px 0 40px}
+section.blk{padding:26px 0;border-top:1px solid var(--line)}
+section.blk:first-child{border-top:0}
+.lbl{font-family:var(--px);font-weight:600;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.blk p{color:var(--muted);font-size:16.5px;line-height:1.7;margin-bottom:14px;max-width:680px}
+.blk p:last-child{margin-bottom:0}
+.blk p b, .blk strong{color:var(--cream);font-weight:600}
+
+.callout{border-left:2px solid var(--teal);background:rgba(79,196,209,.06);border-radius:0 12px 12px 0;padding:22px 24px;margin:6px 0}
+.callout .k{font-family:var(--px);font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:8px}
+.callout p{color:var(--cream);opacity:.92;font-size:17px;margin:0;max-width:none}
+
+.list{list-style:none;display:grid;gap:16px;margin-top:4px}
+.list li{color:var(--muted);font-size:16px;line-height:1.6;padding-left:20px;position:relative;max-width:700px}
+.list li::before{content:"";position:absolute;left:0;top:10px;width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.list li b{color:var(--cream);font-weight:600}
+
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chips span{font-family:var(--px);font-weight:500;font-size:12.5px;letter-spacing:.3px;color:var(--muted);border:1px solid var(--line-2);border-radius:9px;padding:9px 14px}
+
+.cta{margin-top:30px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));border:1px solid var(--line);border-radius:16px;padding:36px 30px;text-align:center}
+.cta h2{font-family:var(--body);font-weight:700;font-size:26px;letter-spacing:-.6px;margin-bottom:8px}
+.cta p{color:var(--muted);margin-bottom:22px}
+.cta .btn{font-size:15px;padding:15px 30px}
+
+footer{border-top:1px solid var(--line);padding:36px 0;margin-top:40px}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+footer .cred{font-family:var(--px);font-size:13px;color:var(--muted);letter-spacing:.5px}
+footer .cred b{color:var(--teal);font-weight:600}
+footer a{font-family:var(--px);font-size:12.5px;color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--teal)}
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <a class="logo" href="index.html">Circuit<span>X</span></a>
+    <div class="top-r">
+      <a class="back" href="index.html#tracks">&larr; All tracks</a>
+      <a class="btn" href="register.html">Sign up now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">CircuitX</a> / <a href="index.html#tracks">Tracks</a> / FirmGen</div>
+    <div class="tag">Track A &middot; Firmware</div>
+    <h1>FirmGen</h1>
+    <div class="tagline">Describe your IoT product, get firmware that&#39;s actually running on it.</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="blk">
+    <div class="lbl">What it is</div>
+    <p>FirmGen is an agentic AI workflow that turns a plain description of what you want your device to do into working firmware on your actual device.</p>
+    <p>You describe your goal and FirmGen designs the architecture, generates the code, compiles it, fixes the errors, then flashes and validates on the connected board.</p>
+  </section>
+
+  <section class="blk">
+    <div class="callout">
+      <span class="k">Hackathon goal</span>
+      <p>Build the most innovative, impactful IoT solution on ESP32 and/or STM32, using FirmGen to handle the firmware layer end to end.</p>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="lbl">Sample projects</div>
+    <ul class="list">
+      <li><b>Predictive Maintenance Monitor.</b> Detects early signs of equipment failure by continuously monitoring a machine&#39;s operating signature and flagging deviations from normal before a breakdown happens.</li>
+      <li><b>Smart Irrigation System.</b> Automates watering decisions based on real-time field conditions instead of a fixed schedule, running on scheduled low-power wake cycles to conserve battery.</li>
+      <li><b>Smart Home Anomaly Alert System.</b> Monitors a home environment for unusual activity or conditions and sends a real-time alert when something&#39;s off.</li>
+    </ul>
+  </section>
+
+  <section class="blk">
+    <div class="lbl">Hardware provided</div>
+    <div class="chips"><span>ESP32 boards</span><span>STM32 boards</span><span>Sensors &amp; peripherals</span><span>FirmGen SDK access</span></div>
+  </section>
+
+  <section class="blk">
+    <div class="lbl">How it&#39;s judged</div>
+    <ul class="list">
+      <li><b>Innovation.</b> Originality of the approach to a problem, not just the problem choice.</li>
+      <li><b>Real-world impact.</b> Does it solve something people actually deal with, and is it plausibly deployable.</li>
+      <li><b>Technical execution.</b> Does the full loop work end to end (sense, decide, act/alert), validated on real hardware.</li>
+      <li><b>Effective use of FirmGen.</b> Did you lean on the agentic workflow for the firmware layer instead of hand-coding around it.</li>
+      <li><b>Completeness within time.</b> A working demo beats an ambitious idea that&#39;s half-built.</li>
+    </ul>
+  </section>
+
+  <div class="cta">
+    <h2>Ready to build on FirmGen?</h2>
+    <p>Solo builders, hardware provided. Sat, 08 Aug 2026 &middot; Luxor North Tower, Bengaluru.</p>
+    <a class="btn" href="register.html">Sign up now</a>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cred"><b>CraftifAI</b> &times; <b>DevAarambh</b> &middot; CircuitX</div>
+    <a href="pipegen.html">See the PipeGen track &rarr;</a>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -561,6 +561,29 @@ body::before{
   .hero .hf-v{font-size:15px;white-space:normal}
 }
 
+/* ---- tracks (detailed) ---- */
+.tk-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:36px;align-items:start}
+@media(max-width:860px){.tk-grid{grid-template-columns:1fr}}
+.tk{display:block;text-decoration:none;color:inherit;background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0));border:1px solid var(--line);border-radius:16px;padding:34px 30px;transition:transform .18s ease,border-color .18s ease}
+.tk[href]:hover{transform:translateY(-3px);border-color:rgba(79,196,209,.4)}
+.tk-more{display:inline-block;margin-top:18px;font-family:var(--px);font-weight:600;font-size:12px;letter-spacing:.5px;color:var(--teal)}
+.tk[href]:hover .tk-more{text-decoration:underline}
+.tk-head{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:20px}
+.tk-tag{font-family:var(--px);font-weight:600;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--teal)}
+.tk-name{font-family:var(--vt);font-weight:700;font-size:34px;letter-spacing:-1px;margin:8px 0 10px;color:var(--cream)}
+.tk-tagline{color:var(--cream);opacity:.85;font-size:16px;line-height:1.5}
+.tk p{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:14px}
+.tk-callout{border-left:2px solid var(--teal);background:rgba(79,196,209,.06);border-radius:0 10px 10px 0;padding:14px 16px;margin:20px 0}
+.tk-callout .k{font-family:var(--px);font-weight:600;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:6px}
+.tk-callout p{color:var(--cream);opacity:.9;margin:0;font-size:15px}
+.tk-label{font-family:var(--px);font-weight:600;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:22px 0 12px}
+.tk-list{list-style:none;display:grid;gap:12px}
+.tk-list li{color:var(--muted);font-size:14.5px;line-height:1.55;padding-left:16px;position:relative}
+.tk-list li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--teal)}
+.tk-list li b{color:var(--cream);font-weight:600}
+.tk-need{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.tk-need span{font-family:var(--px);font-weight:500;font-size:11.5px;letter-spacing:.3px;color:var(--muted);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 12px}
+
 /* ---- header nav ---- */
 .topnav{display:flex;gap:26px;align-items:center}
 .topnav a{font-family:var(--px);font-weight:500;font-size:13px;letter-spacing:.3px;color:var(--muted);text-decoration:none;transition:color .18s ease}
@@ -609,6 +632,7 @@ body::before{
     </a>
     <nav class="topnav" aria-label="Primary">
       <a href="#build">The Build</a>
+      <a href="#tracks">Tracks</a>
       <a href="#perks">Perks</a>
       <a href="#apply">Apply</a>
       <a href="#schedule">Schedule</a>
@@ -691,11 +715,37 @@ body::before{
         </div>
       </div>
     </div>
-    <div class="tracks">
-      <div class="track"><b>Embedded Firmware</b><small>Production-ready firmware on ESP32 &amp; STM32 with FirmGen</small></div>
-      <div class="track"><b>Edge AI Perception</b><small>On-device vision &amp; sensor pipelines with PipeGen</small></div>
-      <div class="track"><b>Smart Sensing &amp; IoT</b><small>Devices that sense, decide &amp; act in real time</small></div>
-      <div class="track"><b>Real-Time Control</b><small>Low-latency control loops running on real hardware</small></div>
+  </div>
+</section>
+
+<div class="trace"></div>
+
+<!-- ============ TRACKS ============ -->
+<section id="tracks" class="tracks-sec">
+  <div class="wrap">
+    <span class="eyebrow">Two Tracks</span>
+    <h2>Pick Your <span class="hl">Track</span></h2>
+    <p class="sub">Two agentic products, one build day. Choose the one that fits what you want to ship.</p>
+    <div class="tk-grid">
+
+      <!-- FirmGen -->
+      <a class="tk" href="firmgen.html">
+        <div class="tk-tag">Track A · Firmware</div>
+        <div class="tk-name">FirmGen</div>
+        <div class="tk-tagline">Describe your IoT product, get firmware that&#39;s actually running on it.</div>
+        <p>An agentic workflow that turns a plain description of your device into working firmware on ESP32 &amp; STM32. It designs the architecture, writes the code, compiles, fixes errors, then flashes and validates on the board.</p>
+        <span class="tk-more">View full track &rarr;</span>
+      </a>
+
+      <!-- PipeGen -->
+      <a class="tk" href="pipegen.html">
+        <div class="tk-tag">Track B · Perception</div>
+        <div class="tk-name">PipeGen</div>
+        <div class="tk-tagline">Describe a vision system in plain English. Walk out with it running on real hardware.</div>
+        <p>An agentic platform that turns a natural-language description into a production-ready vision pipeline for NVIDIA edge hardware, leaving you the whole sprint to build something real on top.</p>
+        <span class="tk-more">View full track &rarr;</span>
+      </a>
+
     </div>
   </div>
 </section>
@@ -1018,6 +1068,7 @@ body::before{
       </div>
       <nav class="foot-nav" aria-label="Footer">
         <a href="#build">The Build</a>
+        <a href="#tracks">Tracks</a>
         <a href="#apply">Apply</a>
         <a href="#schedule">Schedule</a>
         <a href="#faq">FAQ</a>
