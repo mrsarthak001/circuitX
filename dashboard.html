@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin · CircuitX Registrations</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A0D14">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230A0D14'/><text x='16' y='23' font-family='monospace' font-size='19' font-weight='700' fill='%234FC4D1' text-anchor='middle'>X</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -214,7 +217,7 @@ td.cx,th.cx{width:44px;padding-right:0}
 <div class="modal" id="modal" hidden>
   <div class="modal-card">
     <div class="modal-head">
-      <h2 id="mName">—</h2>
+      <h2 id="mName">-</h2>
       <button class="x" id="modalClose" aria-label="Close">×</button>
     </div>
     <div class="modal-meta" id="mMeta"></div>
@@ -323,14 +326,14 @@ td.cx,th.cx{width:44px;padding-right:0}
 
   /* ---------- helpers ---------- */
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function fmtDate(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } }
-  function link(url){ if(!url) return '—'; var href = /^https?:\/\//.test(url)?url:'https://'+url; return '<a href="'+esc(href)+'" target="_blank" rel="noopener">'+esc(url.replace(/^https?:\/\//,'').replace(/\/$/,''))+'</a>'; }
+  function fmtDate(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return '-'; } }
+  function link(url){ if(!url) return '-'; var href = /^https?:\/\//.test(url)?url:'https://'+url; return '<a href="'+esc(href)+'" target="_blank" rel="noopener">'+esc(url.replace(/^https?:\/\//,'').replace(/\/$/,''))+'</a>'; }
   function shortLink(url){ if(!url) return ''; var href = /^https?:\/\//.test(url)?url:'https://'+url; return '<a href="'+esc(href)+'" target="_blank" rel="noopener">'+esc(url.replace(/^https?:\/\//,'').replace(/\/$/,''))+'</a>'; }
   var roleMap = {student:'Student', working:'Working Professional', freelancer:'Freelancer', founder:'Founder'};
   function bg(r){
     if(r.role==='student' && r.college) return esc(r.college);
     if(r.role==='working') return esc([r.designation, r.company].filter(Boolean).join(' · '));
-    return esc(roleMap[r.role]||r.role||'—');
+    return esc(roleMap[r.role]||r.role||'-');
   }
 
   /* ---------- render table ---------- */
@@ -382,7 +385,7 @@ td.cx,th.cx{width:44px;padding-right:0}
         + '<td><div class="name">'+esc(r.fullName)+'</div><div class="sub">'+esc(roleMap[r.role]||r.role||'')+'</div></td>'
         + '<td>'+esc(r.email)+'<div class="sub">'+esc(r.phone)+'</div></td>'
         + '<td>'+bg(r)+' '+exp+'</td>'
-        + '<td>'+(r.track?'<span class="chip">'+esc(r.track)+'</span>':'—')+'</td>'
+        + '<td>'+(r.track?'<span class="chip">'+esc(r.track)+'</span>':'-')+'</td>'
         + '<td class="links">'+shortLink(r.linkedin)+' '+shortLink(r.xurl)+'</td>'
         + '<td class="sub">'+fmtDate(r.createdAt)+'</td>'
         + '<td><span class="badge '+esc(r.status)+'">'+esc(r.status)+'</span></td>'
@@ -405,7 +408,7 @@ td.cx,th.cx{width:44px;padding-right:0}
   }
 
   /* ---------- detail modal ---------- */
-  function field(dt, dd){ return '<div><dt>'+dt+'</dt><dd>'+(dd||'—')+'</dd></div>'; }
+  function field(dt, dd){ return '<div><dt>'+dt+'</dt><dd>'+(dd||'-')+'</dd></div>'; }
   function openModal(r){
     modalId = r.id;
     el('mName').textContent = r.fullName;

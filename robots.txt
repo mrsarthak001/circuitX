@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /api/
+
+Sitemap: https://circuitx.vercel.app/sitemap.xml
