@@ -1,14 +1,42 @@
 # Deploying CircuitX
 
-The Node server (`server.js`) serves **both** the static site (landing, register,
-dashboard) **and** the API, and connects to Postgres. So it's a single deploy.
+There are two supported ways to run this. The DB is always Supabase (Postgres).
 
-Frontend + backend + DB all run from this one service. GitHub Pages can host the
-static pages but **cannot** run the API, so deploy the Node service instead.
+- **Vercel (serverless):** static pages served from the repo root, and the API runs
+  as serverless functions in `/api` (talking to Supabase + Resend). Recommended if
+  you're already on Vercel.
+- **Render / Railway (persistent server):** run `server.js`, which serves the static
+  site AND the API from one Node process. Uses the same `/lib` logic minus serverless.
+
+`server.js` and the `/api` functions share the same logic; you don't need both hosts.
 
 ---
 
-## Option A — Render (recommended, has a free tier)
+## Option A — Vercel (serverless + Supabase)
+
+The frontend already calls `/api/*`, which Vercel maps to the functions in `/api`:
+`register`, `stats`, `registrations` (list), `registrations/bulk-status`,
+`registrations/[id]/status`.
+
+1. Import the repo into Vercel (Framework Preset: **Other** — `vercel.json` sets this).
+2. Add **Environment Variables** (Project Settings → Environment Variables):
+   - `DATABASE_URL` — Supabase **pooler** string. For serverless use the
+     **Transaction pooler** (Supabase → Database → Connection pooling → Transaction,
+     port `6543`). The direct `db.<ref>.supabase.co` host is not built for serverless.
+     URL-encode special chars in the password (`@` -> `%40`).
+   - `RESEND_API_KEY`
+   - `ADMIN_TOKEN` (dashboard login — pick something strong)
+   - optional: `MAIL_FROM`, `MAIL_REPLY_TO`
+3. Redeploy. The `registrations` table is auto-created on first request.
+4. Live: `/` landing · `/register.html` · `/dashboard.html`.
+
+> Why the pooler: each serverless invocation opens its own DB connection. Supabase's
+> transaction pooler (Supavisor) is designed for that; the direct connection will
+> exhaust connection limits under load.
+
+---
+
+## Option B — Render (persistent Node server)
 
 1. Push this repo to GitHub (already on `github.com/mrsarthak001/circuitX`).
 2. Get the **IPv4-safe** Postgres URL from Supabase:
