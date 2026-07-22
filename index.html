@@ -636,6 +636,9 @@ body::before{
 .org p{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:16px}
 .org-link{font-family:var(--px);font-weight:600;font-size:12.5px;letter-spacing:.4px;color:var(--teal);text-decoration:none}
 .org-link:hover{text-decoration:underline}
+.supported{margin-top:40px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.supported-lbl{font-family:var(--px);font-weight:600;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--faint,rgba(236,237,240,.4))}
+.ms-logo svg{height:26px;width:auto;display:block}
 .tk-head{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:20px}
 .tk-tag{font-family:var(--px);font-weight:600;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--teal)}
 .tk-name{font-family:var(--vt);font-weight:700;font-size:34px;letter-spacing:-1px;margin:8px 0 10px;color:var(--cream)}
@@ -1132,6 +1135,18 @@ body::before{
         <div class="org-role">Ecosystem &amp; Innovation Partner</div>
         <p>DevAarambh is our ecosystem and innovation partner, connecting builders and helping run the day on the ground.</p>
       </div>
+    </div>
+    <div class="supported">
+      <span class="supported-lbl">Supported by</span>
+      <span class="ms-logo" role="img" aria-label="Microsoft">
+        <svg viewBox="0 0 112 23" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="10.5" height="10.5" fill="#F25022"/>
+          <rect x="11.5" y="0" width="10.5" height="10.5" fill="#7FBA00"/>
+          <rect x="0" y="11.5" width="10.5" height="10.5" fill="#00A4EF"/>
+          <rect x="11.5" y="11.5" width="10.5" height="10.5" fill="#FFB900"/>
+          <text x="28" y="17.5" font-family="'Segoe UI',Arial,Helvetica,sans-serif" font-size="16.5" fill="#e6e6e6">Microsoft</text>
+        </svg>
+      </span>
     </div>
   </div>
 </section>

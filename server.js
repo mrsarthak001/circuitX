@@ -331,7 +331,7 @@ function pendingText(reg) {
 }
 
 function approvedEmail(reg) {
-  const kit = reg.track === 'FirmGen' ? 'ESP32 and STM32 boards' : reg.track === 'PipeGen' ? 'a perception rig' : 'your hardware kit';
+  const kit = 'the hardware';
   const body = para(`Hi ${firstName(reg)},`)
     + para(`Good news: your registration for <b style="color:#0f1b2d">Embedded</b> has been approved and your seat is confirmed.`)
     + para(`You are in on the <b style="color:#0f1b2d">${esc(reg.track || 'build')}</b> track. We will provide ${kit} and mentors on the floor. Please bring your laptop and chargers.`)
@@ -340,7 +340,7 @@ function approvedEmail(reg) {
     'Approved', '#1c8a4e', 'Your seat is confirmed', body);
 }
 function approvedText(reg) {
-  const kit = reg.track === 'FirmGen' ? 'ESP32 and STM32 boards' : reg.track === 'PipeGen' ? 'a perception rig' : 'your hardware kit';
+  const kit = 'the hardware';
   return `Hi ${(reg.fullName||'there').split(' ')[0]},\n\n`
     + `Good news: your registration for Embedded has been approved and your seat is confirmed.\n\n`
     + `You are in on the ${reg.track || 'build'} track. We will provide ${kit} and mentors on the floor. Please bring your laptop and chargers.\n\n`
