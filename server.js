@@ -41,7 +41,7 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'circuitx-admin';
 const WAITLIST_BASE = Number.isFinite(Number(process.env.WAITLIST_BASE)) ? Number(process.env.WAITLIST_BASE) : 0;
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const MAIL_FROM = process.env.MAIL_FROM || 'Embedded <onboarding@resend.dev>';
+const MAIL_FROM = process.env.MAIL_FROM || 'Embedded <noreply@devaarambh.com>';
 const MAIL_REPLY_TO = process.env.MAIL_REPLY_TO || '';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 

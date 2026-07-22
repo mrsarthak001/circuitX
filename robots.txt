@@ -3,4 +3,4 @@ Allow: /
 Disallow: /dashboard.html
 Disallow: /api/
 
-Sitemap: https://circuitx.vercel.app/sitemap.xml
+Sitemap: https://embedded.devaarambh.com/sitemap.xml
