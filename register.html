@@ -172,6 +172,18 @@ a{color:var(--teal);text-decoration:none}
 .done-social-links a{font-family:var(--mono);font-size:12px;letter-spacing:.3px;color:var(--muted);border:1px solid var(--line-2);border-radius:999px;padding:9px 15px;transition:color .18s ease, border-color .18s ease}
 .done-social-links a:hover{color:var(--teal);border-color:var(--teal)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---- footer ---- */
+.site-foot{border-top:1px solid var(--line);margin-top:80px;padding:40px 0}
+.site-foot .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.foot-left{display:flex;flex-direction:column;gap:6px}
+.foot-cred{font-family:var(--body);font-size:15px;color:var(--muted)}
+.foot-cred b{color:var(--cream);font-weight:600}
+.foot-tiny{font-family:var(--mono);font-size:11px;letter-spacing:.4px;color:var(--faint)}
+.foot-social{display:flex;gap:10px;flex-wrap:wrap}
+.foot-social a{font-family:var(--mono);font-size:12px;letter-spacing:.3px;color:var(--muted);border:1px solid var(--line-2);border-radius:999px;padding:9px 15px;transition:color .18s ease, border-color .18s ease}
+.foot-social a:hover{color:var(--teal);border-color:var(--teal)}
+@media(max-width:560px){.site-foot .wrap{flex-direction:column;align-items:flex-start}}
 </style>
 </head>
 <body>
@@ -384,6 +396,20 @@ a{color:var(--teal);text-decoration:none}
     </section>
   </div>
 </main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="foot-left">
+      <div class="foot-cred"><b>CraftifAI</b> × <b>DevAarambh</b> · Embedded</div>
+      <div class="foot-tiny">© 2026 CraftifAI · All rights reserved</div>
+    </div>
+    <div class="foot-social" aria-label="CraftifAI social">
+      <a href="https://www.linkedin.com/company/craftifai" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://x.com/craftifai" target="_blank" rel="noopener">X</a>
+      <a href="https://discord.gg/KrCxAwvCCH" target="_blank" rel="noopener">Discord</a>
+    </div>
+  </div>
+</footer>
 
 <script>
 (function(){
