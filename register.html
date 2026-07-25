@@ -7,7 +7,7 @@
 <meta name="description" content="Sign up for Embedded, the one-day solo hardware + AI buildathon by CraftifAI and DevAarambh. Hardware provided, Rs 50,000 prize. Bengaluru, Sat 08 Aug 2026.">
 <meta name="theme-color" content="#0A0D14">
 <link rel="canonical" href="https://embedded.devaarambh.com/register.html">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230A0D14'/><text x='16' y='23' font-family='monospace' font-size='19' font-weight='700' fill='%234FC4D1' text-anchor='middle'>E</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230A0D14'/><text x='16' y='23' font-family='monospace' font-size='19' font-weight='700' fill='%230A84FF' text-anchor='middle'>E</text></svg>">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Embedded">
 <meta property="og:title" content="Sign up · Embedded">
@@ -24,7 +24,7 @@
 :root{
   --navy:#0A0D14;
   --navy-2:#111621;
-  --teal:#4FC4D1;
+  --teal:#0A84FF;
   --cream:#ECEDF0;
   --muted:rgba(236,237,240,.52);
   --faint:rgba(236,237,240,.32);
@@ -57,7 +57,7 @@ a{color:var(--teal);text-decoration:none}
 .topbar{position:sticky;top:0;z-index:50;background:rgba(10,13,20,.72);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
 .logo{font-family:var(--body);font-weight:700;font-size:19px;letter-spacing:-.5px;color:var(--cream)}
-.logo b{color:var(--teal);font-weight:700}
+.logo b{color:var(--cream);font-weight:700}
 .back{font-family:var(--mono);font-size:12.5px;letter-spacing:.4px;color:var(--muted);transition:color .18s ease}
 .back:hover{color:var(--cream)}
 
@@ -70,14 +70,14 @@ a{color:var(--teal);text-decoration:none}
 .eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-weight:500;font-size:11.5px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
 .eyebrow::before{content:"";width:22px;height:1px;background:var(--teal)}
 .rail h1{font-family:var(--body);font-weight:700;font-size:clamp(30px,3.8vw,40px);line-height:1.06;letter-spacing:-1.4px;margin:18px 0 16px}
-.rail h1 span{color:var(--teal)}
+.rail h1 span{color:var(--cream)}
 .rail .lead{color:var(--muted);max-width:390px;font-size:15.5px}
 .rail-label{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:34px 0 6px}
 .facts{list-style:none;border-top:1px solid var(--line)}
 .facts li{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--cream)}
 .facts li span{font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);min-width:92px;padding-top:2px}
 .assure{display:flex;align-items:center;gap:10px;margin-top:22px;font-family:var(--mono);font-size:12px;letter-spacing:.4px;color:var(--muted)}
-.assure .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(79,196,209,.14)}
+.assure .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(10,132,255,.14)}
 
 /* form card */
 .formcard{background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0));border:1px solid var(--line);border-radius:18px;padding:30px 34px 30px;position:relative}
@@ -91,7 +91,7 @@ a{color:var(--teal);text-decoration:none}
 .s-num{position:relative;z-index:1;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--navy-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12.5px;color:var(--muted);transition:all .22s ease}
 .s-num svg{width:14px;height:14px;display:none}
 .s-lbl{font-family:var(--mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);transition:color .22s ease}
-.s-item.is-active .s-num{border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 4px rgba(79,196,209,.12)}
+.s-item.is-active .s-num{border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 4px rgba(10,132,255,.12)}
 .s-item.is-active .s-lbl{color:var(--cream)}
 .s-item.is-done .s-num{background:var(--teal);border-color:var(--teal)}
 .s-item.is-done .s-num span{display:none}
@@ -120,7 +120,7 @@ a{color:var(--teal);text-decoration:none}
   appearance:none;-webkit-appearance:none;
 }
 .field input::placeholder{color:var(--faint)}
-.field input:focus,.field select:focus{outline:none;border-color:var(--teal);background:rgba(79,196,209,.05);box-shadow:0 0 0 4px rgba(79,196,209,.10)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--teal);background:rgba(10,132,255,.05);box-shadow:0 0 0 4px rgba(10,132,255,.10)}
 .selwrap{position:relative}
 .selwrap::after{content:"";position:absolute;right:16px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
 .field select{cursor:pointer}
@@ -143,7 +143,7 @@ a{color:var(--teal);text-decoration:none}
 .trackcard .tick{position:absolute;top:16px;right:16px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);transition:all .18s ease}
 .trackcard input:checked ~ .tick{background:var(--teal);border-color:var(--teal)}
 .trackcard input:checked ~ .tick::after{content:"";position:absolute;left:6px;top:3px;width:5px;height:9px;border-right:2px solid #0A0D14;border-bottom:2px solid #0A0D14;transform:rotate(45deg)}
-.trackcard:has(input:checked){border-color:var(--teal);background:rgba(79,196,209,.06)}
+.trackcard:has(input:checked){border-color:var(--teal);background:rgba(10,132,255,.06)}
 .track-err{display:none;color:var(--err);font-size:12.5px;margin-top:12px;font-family:var(--mono)}
 
 /* nav buttons */
@@ -156,7 +156,7 @@ a{color:var(--teal);text-decoration:none}
 
 /* success */
 .done{text-align:center;padding:26px 8px 14px}
-.done .check{width:62px;height:62px;border-radius:50%;margin:0 auto 22px;border:1px solid var(--teal);display:flex;align-items:center;justify-content:center;background:rgba(79,196,209,.08)}
+.done .check{width:62px;height:62px;border-radius:50%;margin:0 auto 22px;border:1px solid var(--teal);display:flex;align-items:center;justify-content:center;background:rgba(10,132,255,.08)}
 .done .check svg{width:26px;height:26px}
 .done h2{font-family:var(--body);font-weight:700;font-size:26px;letter-spacing:-.6px;margin-bottom:12px}
 .done .pos{display:inline-block;font-family:var(--mono);font-size:12.5px;letter-spacing:1px;color:var(--teal);border:1px solid var(--line-2);border-radius:999px;padding:8px 16px;margin-bottom:18px}
@@ -194,7 +194,7 @@ a{color:var(--teal);text-decoration:none}
 
       <div class="rail-label">The event</div>
       <ul class="facts">
-        <li><span>When</span> Sat, 08 Aug 2026 · 9AM &ndash; 6PM</li>
+        <li><span>When</span> Sat, 08 Aug 2026 · 9AM &ndash; 6:30PM</li>
         <li><span>Where</span> Microsoft, Luxor North Tower, Bengaluru</li>
         <li><span>Format</span> Solo · Hardware provided</li>
         <li><span>Prize</span> ₹50,000 cash prize</li>
@@ -365,7 +365,7 @@ a{color:var(--teal);text-decoration:none}
       <!-- SUCCESS -->
       <div class="done" id="done" hidden>
         <div class="check">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#4FC4D1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
         <h2>You're on the waiting list.</h2>
         <p>Thanks, <b id="doneName">builder</b>, you're in line for Embedded. We'll email <b id="doneEmail">you</b> the moment your seat is confirmed, along with venue details.</p>
