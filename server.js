@@ -7,8 +7,8 @@
  *   - Expose an admin API (list + approve/reject), guarded by an admin token
  *
  * Run:   ADMIN_TOKEN=your-secret node server.js
- * Env:   PORT (default 4600), ADMIN_TOKEN (default "circuitx-admin"),
- *        WAITLIST_BASE (default 0 — positions start at #1)
+ * Env:   PORT (default 4600), ADMIN_TOKEN (required for admin API/dashboard —
+ *        unset disables them with 503), WAITLIST_BASE (default 0 — positions start at #1)
  */
 'use strict';
 
@@ -37,7 +37,8 @@ const DATA_DIR = path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'registrations.json');
 
 const PORT = Number(process.env.PORT) || 4600;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'circuitx-admin';
+// Admin token: no insecure default. If unset, all admin routes fail closed (503).
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const WAITLIST_BASE = Number.isFinite(Number(process.env.WAITLIST_BASE)) ? Number(process.env.WAITLIST_BASE) : 0;
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -53,8 +54,8 @@ const EVENT = {
   venue: 'Microsoft, Luxor North Tower, Bengaluru',
 };
 
-if (ADMIN_TOKEN === 'circuitx-admin') {
-  console.warn('[warn] Using the default ADMIN_TOKEN "circuitx-admin". Set ADMIN_TOKEN to a secret before deploying.');
+if (!ADMIN_TOKEN) {
+  console.warn('[warn] ADMIN_TOKEN is not set — the admin API and dashboard are disabled (503) until you set it.');
 }
 if (!RESEND_API_KEY) {
   console.warn('[warn] RESEND_API_KEY not set — emails will be skipped (logged only).');
@@ -74,10 +75,21 @@ if (!RESEND_API_KEY) {
 const FIELDS = ['fullName', 'email', 'phone', 'role', 'college', 'company', 'designation', 'experience', 'linkedin', 'xurl', 'track'];
 
 /* --- Postgres implementation --- */
+function pgSsl(connString) {
+  // Local connections: no TLS. Remote: verify the server cert when possible.
+  // Provide DATABASE_CA_CERT (PEM) or DATABASE_SSL_STRICT=true to enforce verification.
+  // Verification defaults off only because managed PG (Supabase/Render) often
+  // presents chains Node won't validate without the provider CA.
+  if (/@(localhost|127\.0\.0\.1)[:/]/.test(connString)) return false;
+  const ca = process.env.DATABASE_CA_CERT;
+  if (ca) return { ca, rejectUnauthorized: true };
+  if (process.env.DATABASE_SSL_STRICT === 'true') return { rejectUnauthorized: true };
+  return { rejectUnauthorized: false };
+}
+
 function makePgStore(connString, PoolClass) {
   const Pool = PoolClass || require('pg').Pool;
-  const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(connString);
-  const pool = new Pool({ connectionString: connString, ssl: isLocal ? false : { rejectUnauthorized: false } });
+  const pool = new Pool({ connectionString: connString, ssl: pgSsl(connString) });
 
   const map = (r) => ({
     id: r.id, position: WAITLIST_BASE + r.id, status: r.status,
@@ -197,13 +209,18 @@ function makeJsonStore() {
 const db = DATABASE_URL ? makePgStore(DATABASE_URL) : makeJsonStore();
 
 /* ------------------------------ helpers ------------------------------- */
-const MIME = {
+// Allowlist of servable static types. Deliberately excludes .js/.json and any
+// server-side source so the static handler can never leak .env, source, or
+// config. Everything the site needs is HTML (CSS/JS are inlined) plus a few
+// text/image assets.
+const STATIC_TYPES = {
   '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp',
+  '.woff': 'font/woff', '.woff2': 'font/woff2',
 };
 
 function sendJSON(res, status, obj) {
@@ -232,12 +249,34 @@ function readBody(req) {
   });
 }
 
-// timing-safe admin check
+// timing-safe admin check. Fails closed when ADMIN_TOKEN is unset.
 function isAdmin(req) {
+  if (!ADMIN_TOKEN) return false;
   const token = req.headers['x-admin-token'] || '';
   const a = Buffer.from(String(token));
   const b = Buffer.from(ADMIN_TOKEN);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/* --------- lightweight in-memory rate limiter (per client IP) --------- */
+const _rlBuckets = new Map();
+function rateLimit(key, max, windowMs) {
+  const now = Date.now();
+  let b = _rlBuckets.get(key);
+  if (!b || now > b.reset) { b = { count: 0, reset: now + windowMs }; _rlBuckets.set(key, b); }
+  b.count += 1;
+  return b.count <= max;
+}
+// Evict stale buckets periodically so the map can't grow unbounded.
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, b] of _rlBuckets) if (now > b.reset) _rlBuckets.delete(k);
+}, 5 * 60 * 1000).unref();
+
+function clientIp(req) {
+  const xf = req.headers['x-forwarded-for'];
+  if (xf) return String(xf).split(',')[0].trim();
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
 }
 
 const isEmail = (v) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -358,6 +397,12 @@ async function handleApi(req, res, url) {
 
   // Public: create a registration
   if (pathname === '/api/register' && req.method === 'POST') {
+    // Rate limit: each accepted registration triggers an email to the supplied
+    // address, so throttle per IP to prevent spam / email-bombing abuse.
+    const ip = clientIp(req);
+    if (!rateLimit(`reg:min:${ip}`, 5, 60 * 1000) || !rateLimit(`reg:hr:${ip}`, 30, 60 * 60 * 1000)) {
+      return sendJSON(res, 429, { ok: false, error: 'Too many requests. Please try again in a little while.' });
+    }
     let body;
     try { body = await readBody(req); } catch (e) { return sendJSON(res, 400, { ok: false, error: e.message }); }
 
@@ -384,6 +429,7 @@ async function handleApi(req, res, url) {
 
   // Everything below is admin-only
   if (pathname.startsWith('/api/registrations') || pathname === '/api/stats') {
+    if (!ADMIN_TOKEN) return sendJSON(res, 503, { ok: false, error: 'admin API not configured' });
     if (!isAdmin(req)) return sendJSON(res, 401, { ok: false, error: 'unauthorized' });
   }
 
@@ -433,18 +479,33 @@ async function handleApi(req, res, url) {
 
 /* --------------------------- static serving --------------------------- */
 function serveStatic(req, res, url) {
-  let pathname = decodeURIComponent(url.pathname);
+  let pathname;
+  try { pathname = decodeURIComponent(url.pathname); } catch (e) { res.writeHead(400); return res.end('Bad request'); }
   if (pathname === '/') pathname = '/index.html';
-  const filePath = path.normalize(path.join(ROOT, pathname));
 
-  // prevent path traversal + never serve data/ or server.js
-  if (!filePath.startsWith(ROOT) || filePath === __filename || filePath.startsWith(DATA_DIR)) {
+  // Reject any dot-segment: blocks dotfiles/dirs (.env, .git, .vercel_token)
+  // and traversal segments ("..") in one check.
+  if (pathname.split('/').some((seg) => seg.startsWith('.'))) {
     res.writeHead(403); return res.end('Forbidden');
   }
+
+  // Only serve allowlisted static types (excludes .js/.json/source/config).
+  const ext = path.extname(pathname).toLowerCase();
+  const type = STATIC_TYPES[ext];
+  if (!type) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+
+  const filePath = path.normalize(path.join(ROOT, pathname));
+  // Must stay strictly inside ROOT (trailing sep prevents sibling-prefix escape,
+  // e.g. ../CircuitX-private) and never touch data/.
+  const inRoot = filePath === ROOT || filePath.startsWith(ROOT + path.sep);
+  const inData = filePath === DATA_DIR || filePath.startsWith(DATA_DIR + path.sep);
+  if (!inRoot || inData || filePath === __filename) {
+    res.writeHead(403); return res.end('Forbidden');
+  }
+
   fs.readFile(filePath, (err, buf) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
-    const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': type });
     res.end(buf);
   });
 }
@@ -467,7 +528,7 @@ function start() {
       console.log(`  Register    ->  http://localhost:${PORT}/register.html`);
       console.log(`  Dashboard   ->  http://localhost:${PORT}/dashboard.html`);
       console.log(`  Database    ->  ${db.kind === 'postgres' ? 'Postgres (DATABASE_URL)' : 'JSON file (data/registrations.json) — set DATABASE_URL for Postgres'}`);
-      console.log(`  Admin token ->  ${ADMIN_TOKEN === 'circuitx-admin' ? 'circuitx-admin (default — change it!)' : '(set via ADMIN_TOKEN)'}`);
+      console.log(`  Admin token ->  ${ADMIN_TOKEN ? '(set via ADMIN_TOKEN)' : 'NOT SET — admin API disabled (503)'}`);
       console.log(`  Email       ->  ${RESEND_API_KEY ? 'Resend enabled, from ' + MAIL_FROM : 'disabled (no RESEND_API_KEY)'}`);
     });
   }).catch((e) => {

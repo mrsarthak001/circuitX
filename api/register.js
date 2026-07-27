@@ -3,8 +3,28 @@ const { getPool, ensureTable, mapRow } = require('../lib/db');
 const { isEmail, nonEmpty, clip } = require('../lib/util');
 const { sendPending } = require('../lib/email');
 
+// Best-effort per-instance rate limit. Serverless memory is per-warm-instance,
+// so this is defense-in-depth; pair with a platform WAF / edge rate limit.
+const _rl = new Map();
+function rateLimit(key, max, windowMs) {
+  const now = Date.now();
+  let e = _rl.get(key);
+  if (!e || now > e.reset) { e = { count: 0, reset: now + windowMs }; _rl.set(key, e); }
+  e.count += 1;
+  return e.count <= max;
+}
+function clientIp(req) {
+  const xf = req.headers['x-forwarded-for'];
+  if (xf) return String(xf).split(',')[0].trim();
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method not allowed' });
+  const ip = clientIp(req);
+  if (!rateLimit(`reg:min:${ip}`, 5, 60 * 1000) || !rateLimit(`reg:hr:${ip}`, 30, 60 * 60 * 1000)) {
+    return res.status(429).json({ ok: false, error: 'Too many requests. Please try again in a little while.' });
+  }
   const b = req.body || {};
   if (!nonEmpty(b.fullName)) return res.status(400).json({ ok: false, error: 'fullName required' });
   if (!isEmail(b.email)) return res.status(400).json({ ok: false, error: 'valid email required' });
