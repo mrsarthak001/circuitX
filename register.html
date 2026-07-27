@@ -337,7 +337,7 @@ a{color:var(--teal);text-decoration:none}
           <div class="step-head">
             <div class="kicker">Step 3 of 4</div>
             <h2>Where can we find your work?</h2>
-            <p class="hint">We use these to verify builders, so both are required.</p>
+            <p class="hint">We use these to verify builders. LinkedIn is required; X is optional.</p>
           </div>
           <div class="fields">
             <div class="row2">
@@ -347,7 +347,7 @@ a{color:var(--teal);text-decoration:none}
                 <small class="err">Please enter a valid LinkedIn URL.</small>
               </div>
               <div class="field">
-                <label for="xurl">X (Twitter)</label>
+                <label for="xurl">X (Twitter) <span style="color:var(--faint);font-weight:400">(optional)</span></label>
                 <input id="xurl" name="xurl" type="url" placeholder="x.com/…" inputmode="url">
                 <small class="err">Please enter a valid X URL.</small>
               </div>
@@ -525,7 +525,7 @@ a{color:var(--teal);text-decoration:none}
       need(form.experience, function(v){ return !!v; });
     } else if(n === 3){
       need(form.linkedin, isReqUrl);
-      need(form.xurl,     isReqUrl);
+      need(form.xurl,     isUrlish);
     } else if(n === 4){
       var chosen = !!form.querySelector('input[name="track"]:checked');
       document.getElementById('trackErr').style.display = chosen ? 'none' : 'block';
@@ -542,7 +542,7 @@ a{color:var(--teal);text-decoration:none}
         if(form.role.value==='working') return form.company.value.trim() && form.designation.value.trim();
         return true;
       },
-      3:function(){ return isReqUrl(form.linkedin.value) && isReqUrl(form.xurl.value); },
+      3:function(){ return isReqUrl(form.linkedin.value) && isUrlish(form.xurl.value); },
       4:function(){ return !!form.querySelector('input[name="track"]:checked'); }
     };
     return v[n] ? v[n]() : false;
