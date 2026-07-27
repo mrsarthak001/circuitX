@@ -43,14 +43,14 @@ const WAITLIST_BASE = Number.isFinite(Number(process.env.WAITLIST_BASE)) ? Numbe
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const MAIL_FROM = process.env.MAIL_FROM || 'Embedded <noreply@devaarambh.com>';
-const MAIL_REPLY_TO = process.env.MAIL_REPLY_TO || '';
+const MAIL_REPLY_TO = process.env.MAIL_REPLY_TO || 'sarthak@devaarambh.com';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 
 // Event details used in emails
 const EVENT = {
   name: 'Embedded',
   date: 'Saturday, 08 August 2026',
-  time: '9:00 AM – 6:30 PM',
+  time: '9:00 AM – 6:00 PM',
   venue: 'Microsoft, Luxor North Tower, Bengaluru',
 };
 

@@ -23,6 +23,6 @@ services:
         sync: false
       # --- Non-secret defaults (edit as needed) ---
       - key: MAIL_FROM
-        value: CircuitX <onboarding@resend.dev>
+        value: Embedded <noreply@devaarambh.com>
       - key: MAIL_REPLY_TO
-        value: support@devaarambh.com
+        value: sarthak@devaarambh.com
