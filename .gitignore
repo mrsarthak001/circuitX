@@ -11,3 +11,4 @@ data/
 .env
 .vercel_token
 .vercel
+.env*.local
