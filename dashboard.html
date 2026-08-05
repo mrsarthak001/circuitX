@@ -158,6 +158,7 @@ td.cx,th.cx{width:44px;padding-right:0}
       <div class="brand">Embedde<b>d</b><span>Registrations</span></div>
       <div class="bar-actions">
         <button class="btn sm" id="refreshBtn">↻ Refresh</button>
+        <button class="btn sm" id="downloadBtn">↓ Download sheet</button>
         <button class="btn sm" id="logoutBtn">Sign out</button>
       </div>
     </div>
@@ -397,6 +398,39 @@ td.cx,th.cx{width:44px;padding-right:0}
     }).join('');
     syncSelUI();
   }
+  /* ---------- CSV export ---------- */
+  function csvCell(v){
+    var s = (v==null?'':String(v));
+    return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }
+  function downloadCSV(){
+    var list = visible();
+    if(!list.length){ toast('Nothing to export for the current filters'); return; }
+    var cols = [
+      ['position','#'], ['fullName','Name'], ['email','Email'], ['phone','Phone'],
+      ['role','Role'], ['experience','Experience (yrs)'], ['college','College'],
+      ['company','Company'], ['designation','Designation'], ['track','Track'],
+      ['linkedin','LinkedIn'], ['xurl','X / Twitter'], ['status','Status'], ['createdAt','Submitted']
+    ];
+    var lines = [cols.map(function(c){ return csvCell(c[1]); }).join(',')];
+    list.forEach(function(r){
+      lines.push(cols.map(function(c){
+        var v = r[c[0]];
+        if(c[0]==='role') v = roleMap[v]||v;
+        return csvCell(v);
+      }).join(','));
+    });
+    // Prepend BOM so Excel opens UTF-8 correctly.
+    var blob = new Blob(['﻿'+lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = 'embedded-registrations-'+stamp+'.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+    toast('Downloaded '+list.length+' row'+(list.length===1?'':'s'));
+  }
+
   function syncSelUI(){
     var list = visible();
     var n = selected.size;
@@ -467,6 +501,7 @@ td.cx,th.cx{width:44px;padding-right:0}
   ['fTrack','fRole','fExp'].forEach(function(id){ el(id).addEventListener('change', function(){ syncFilterUI(); render(); }); });
   el('resetFilters').addEventListener('click', function(){ el('fTrack').value=''; el('fRole').value=''; el('fExp').value=''; syncFilterUI(); render(); });
   el('refreshBtn').addEventListener('click', load);
+  el('downloadBtn').addEventListener('click', downloadCSV);
   el('bulkApprove').addEventListener('click', function(){ bulkStatus('approved'); });
   el('bulkReject').addEventListener('click', function(){ bulkStatus('rejected'); });
   el('bulkClear').addEventListener('click', function(){ selected.clear(); render(); });
