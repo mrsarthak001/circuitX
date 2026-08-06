@@ -40,6 +40,9 @@ a{color:var(--teal)}
 .btn.err{border-color:rgba(240,120,91,.5);color:var(--err)}
 .btn.err:hover:not(:disabled){background:rgba(240,120,91,.12)}
 .btn.sm{padding:6px 11px;font-size:11.5px}
+.btn.on{border-color:rgba(79,196,209,.6);color:var(--teal);background:rgba(79,196,209,.10)}
+.btn.on:hover{background:rgba(79,196,209,.16)}
+.sync{font-family:var(--mono);font-size:11px;color:var(--faint);margin-right:4px;white-space:nowrap}
 
 main{padding:28px 0 90px}
 
@@ -160,6 +163,8 @@ td.cx,th.cx{width:44px;padding-right:0}
     <div class="wrap">
       <div class="brand">Embedde<b>d</b><span>Registrations</span></div>
       <div class="bar-actions">
+        <span class="sync" id="syncInfo"></span>
+        <button class="btn sm" id="autoBtn">⟳ Auto</button>
         <button class="btn sm" id="refreshBtn">↻ Refresh</button>
         <button class="btn sm" id="downloadBtn">↓ Download sheet</button>
         <button class="btn sm" id="rsvpMailBtn">✉ Send RSVP to approved</button>
@@ -268,13 +273,14 @@ td.cx,th.cx{width:44px;padding-right:0}
     if(!val){ el('loginErr').textContent='Enter a token.'; return; }
     token = val;
     fetch('/api/stats', { headers: headers() }).then(function(r){
-      if(r.ok){ sessionStorage.setItem(TOKEN_KEY, token); showApp(); load(); }
+      if(r.ok){ sessionStorage.setItem(TOKEN_KEY, token); showApp(); load(); updateAutoBtn(); startAuto(); }
       else { token=''; el('loginErr').textContent='Invalid token.'; }
     }).catch(function(){ el('loginErr').textContent='Cannot reach server.'; });
   }
   el('loginBtn').addEventListener('click', login);
   el('token').addEventListener('keydown', function(e){ if(e.key==='Enter') login(); });
   el('logoutBtn').addEventListener('click', function(){
+    stopAuto();
     sessionStorage.removeItem(TOKEN_KEY); token=''; all=[]; selected.clear(); showLogin('');
   });
 
@@ -285,20 +291,50 @@ td.cx,th.cx{width:44px;padding-right:0}
     el('stApproved').textContent = by.approved || 0;
     el('stRejected').textContent = by.rejected || 0;
   }
-  function load(){
+  function load(silent){
+    if(load._busy) return; load._busy = true;
     Promise.all([
       fetch('/api/stats', { headers: headers() }).then(function(r){ return r.json(); }),
       fetch('/api/registrations', { headers: headers() }).then(function(r){ return r.json(); })
     ]).then(function(res){
+      load._busy = false;
       var stats = res[0], data = res[1];
-      if(!stats.ok || !data.ok){ showLogin('Session expired, sign in again.'); return; }
+      if(!stats.ok || !data.ok){ stopAuto(); showLogin('Session expired, sign in again.'); return; }
       applyStats(stats.total, stats.by);
       all = data.registrations;
       // drop selections that no longer exist
       selected.forEach(function(id){ if(!all.some(function(r){return r.id===id;})) selected.delete(id); });
       populateFilters();
       render();
-    }).catch(function(){ toast('Failed to load'); });
+      lastSync = Date.now(); updateSync();
+    }).catch(function(){ load._busy = false; if(!silent) toast('Failed to load'); });
+  }
+
+  /* ---------- auto refresh ---------- */
+  var AUTO_KEY = 'embedded_auto_refresh', AUTO_MS = 30000;
+  var autoTimer = null, syncTicker = null, lastSync = null;
+  function autoOn(){ return localStorage.getItem(AUTO_KEY) !== 'off'; } // default on
+  function updateAutoBtn(){ var b = el('autoBtn'); if(!b) return; var on = autoOn(); b.classList.toggle('on', on); b.textContent = on ? '⟳ Auto ' + (AUTO_MS/1000) + 's' : '⟳ Auto off'; }
+  function updateSync(){
+    if(!el('syncInfo')) return;
+    if(!lastSync){ el('syncInfo').textContent = ''; return; }
+    var s = Math.round((Date.now() - lastSync)/1000);
+    el('syncInfo').textContent = s < 5 ? 'updated just now' : 'updated ' + (s < 60 ? s + 's ago' : Math.floor(s/60) + 'm ago');
+  }
+  function autoTick(){
+    if(!token || el('app').hidden || document.hidden) return; // logged out / not visible
+    if(!el('modal').hidden) return;      // detail modal open — don't disrupt
+    if(selected.size > 0) return;        // mid bulk-selection — don't clobber
+    load(true);                          // silent refresh
+  }
+  function startAuto(){
+    stopAuto();
+    if(autoOn()) autoTimer = setInterval(autoTick, AUTO_MS);
+    syncTicker = setInterval(updateSync, 1000); // keep "updated Ns ago" live
+  }
+  function stopAuto(){
+    if(autoTimer){ clearInterval(autoTimer); autoTimer = null; }
+    if(syncTicker){ clearInterval(syncTicker); syncTicker = null; }
   }
 
   function recount(){
@@ -538,7 +574,15 @@ td.cx,th.cx{width:44px;padding-right:0}
   el('search').addEventListener('input', function(e){ q = e.target.value.trim().toLowerCase(); render(); });
   ['fTrack','fRole','fExp','fRsvp'].forEach(function(id){ el(id).addEventListener('change', function(){ syncFilterUI(); render(); }); });
   el('resetFilters').addEventListener('click', function(){ el('fTrack').value=''; el('fRole').value=''; el('fExp').value=''; el('fRsvp').value=''; syncFilterUI(); render(); });
-  el('refreshBtn').addEventListener('click', load);
+  el('refreshBtn').addEventListener('click', function(){ load(); });
+  el('autoBtn').addEventListener('click', function(){
+    localStorage.setItem(AUTO_KEY, autoOn() ? 'off' : 'on');
+    updateAutoBtn(); startAuto();
+    if(autoOn()){ toast('Auto-refresh on'); load(true); } else { toast('Auto-refresh off'); }
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && token && !el('app').hidden && autoOn()) load(true);
+  });
   el('downloadBtn').addEventListener('click', downloadCSV);
   el('rsvpMailBtn').addEventListener('click', sendRsvpToApproved);
   el('bulkApprove').addEventListener('click', function(){ bulkStatus('approved'); });
@@ -548,7 +592,7 @@ td.cx,th.cx{width:44px;padding-right:0}
   /* ---------- boot ---------- */
   if(token){
     fetch('/api/stats', { headers: headers() }).then(function(r){
-      if(r.ok){ showApp(); load(); } else { showLogin(''); }
+      if(r.ok){ showApp(); load(); updateAutoBtn(); startAuto(); } else { showLogin(''); }
     }).catch(function(){ showLogin('Cannot reach server.'); });
   } else { showLogin(''); }
 })();
