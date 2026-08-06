@@ -35,6 +35,8 @@
   .yes:hover{background:var(--green-2)}
   .no{background:transparent;color:var(--cream);border-color:var(--line-2)}
   .no:hover{border-color:var(--red);color:#f0b6b4}
+  a.discord{display:block;text-align:center;text-decoration:none;background:#5865F2;color:#fff;border:1px solid #5865F2;font-family:var(--body);font-weight:600;font-size:15.5px;padding:14px 20px;border-radius:12px;transition:transform .16s ease,background .16s ease}
+  a.discord:hover{transform:translateY(-2px);background:#6b76f5}
   .muted{color:var(--muted);font-size:14px}
   .foot{margin-top:26px;font-family:var(--px);font-size:11px;letter-spacing:.4px;color:var(--faint)}
   .foot a{color:var(--muted);text-decoration:none}
@@ -56,6 +58,7 @@
 
 <script>
 (function () {
+  var DISCORD_URL = 'https://discord.gg/42k6bFFnKs';
   var params = new URLSearchParams(location.search);
   var token = params.get('token') || '';
   var intent = params.get('intent') || '';
@@ -72,8 +75,9 @@
     content.innerHTML = '<div class="big">' + (yes ? '🎉' : '👋') + '</div>'
       + '<h1>' + (yes ? 'You’re confirmed' : 'Thanks for letting us know') + '</h1>'
       + '<p class="lead">' + (yes
-        ? 'See you on <b>August 8th</b>' + (name ? ', ' + esc(name) : '') + '. We’ve noted you’re coming. Details and updates are on Discord.'
+        ? 'See you on <b>August 8th</b>' + (name ? ', ' + esc(name) : '') + '. We’ve noted you’re coming. All updates happen on Discord, so join if you haven’t yet.'
         : 'No problem' + (name ? ', ' + esc(name) : '') + '. We’ve recorded that you can’t make it and freed up your spot. You can change your mind any time by reopening this link.') + '</p>'
+      + (yes ? '<div class="btns"><a class="discord" href="' + DISCORD_URL + '" target="_blank" rel="noopener">Join Discord</a></div>' : '')
       + '<div class="btns" id="switch"></div>';
     var sw = document.getElementById('switch');
     var other = yes ? 'no' : 'yes';
