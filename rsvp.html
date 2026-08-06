@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>RSVP · Embedded · Hardware + AI Buildathon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0A0D14; --navy-2:#111621; --teal:#0A84FF;
+    --green:#1c8a4e; --green-2:#22a35d; --red:#c0504d;
+    --cream:#ECEDF0; --muted:rgba(236,237,240,.60); --faint:rgba(236,237,240,.34);
+    --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.14);
+    --px:"JetBrains Mono", ui-monospace, monospace;
+    --body:"Space Grotesk", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--navy);color:var(--cream);font-family:var(--body);font-size:16px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+  .grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(to right,rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.04) 1px,transparent 1px);background-size:66px 66px;-webkit-mask-image:radial-gradient(120% 80% at 50% -5%,#000 0%,rgba(0,0,0,.5) 45%,transparent 80%);mask-image:radial-gradient(120% 80% at 50% -5%,#000 0%,rgba(0,0,0,.5) 45%,transparent 80%);pointer-events:none}
+  .card{position:relative;z-index:1;width:100%;max-width:460px;background:var(--navy-2);border:1px solid var(--line);border-radius:18px;padding:34px 30px;text-align:center}
+  .brand{font-family:var(--body);font-weight:700;font-size:20px;letter-spacing:-.5px;margin-bottom:2px}
+  .brand span{color:var(--teal)}
+  .sub{font-family:var(--px);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--faint);margin-bottom:26px}
+  .tag{display:inline-block;font-family:var(--px);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);border:1px solid var(--line-2);border-radius:999px;padding:5px 12px;margin-bottom:18px}
+  h1{font-weight:700;font-size:26px;letter-spacing:-.6px;line-height:1.2;margin:0 0 10px}
+  p.lead{color:var(--muted);font-size:15.5px;margin:0 0 24px}
+  .btns{display:flex;flex-direction:column;gap:12px}
+  button{font-family:var(--body);font-weight:600;font-size:15.5px;padding:14px 20px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:transform .16s ease,background .16s ease,opacity .16s ease}
+  button:hover{transform:translateY(-2px)}
+  button:disabled{opacity:.55;cursor:default;transform:none}
+  .yes{background:var(--green);color:#fff;border-color:var(--green)}
+  .yes:hover{background:var(--green-2)}
+  .no{background:transparent;color:var(--cream);border-color:var(--line-2)}
+  .no:hover{border-color:var(--red);color:#f0b6b4}
+  .muted{color:var(--muted);font-size:14px}
+  .foot{margin-top:26px;font-family:var(--px);font-size:11px;letter-spacing:.4px;color:var(--faint)}
+  .foot a{color:var(--muted);text-decoration:none}
+  .spin{display:inline-block;width:20px;height:20px;border:2px solid var(--line-2);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .hint{margin-top:16px;font-size:13px;color:var(--faint)}
+  .hint a{color:var(--teal);text-decoration:none}
+  .big{font-size:40px;line-height:1;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="card" id="card">
+  <div class="brand">Embedde<span>d</span></div>
+  <div class="sub">Hardware + AI Buildathon</div>
+  <div id="content"><div class="spin" aria-label="Loading"></div></div>
+  <div class="foot">CraftifAI &times; DevAarambh &middot; <a href="index.html">embedded</a></div>
+</div>
+
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var token = params.get('token') || '';
+  var intent = params.get('intent') || '';
+  var content = document.getElementById('content');
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  function invalid() {
+    content.innerHTML = '<div class="big">⚠️</div><h1>Link not valid</h1>'
+      + '<p class="lead">This RSVP link is invalid or has expired. If you were approved, use the button in your confirmation email, or just reply to it and we’ll sort it out.</p>';
+  }
+
+  function done(rsvp, name) {
+    var yes = rsvp === 'yes';
+    content.innerHTML = '<div class="big">' + (yes ? '🎉' : '👋') + '</div>'
+      + '<h1>' + (yes ? 'You’re confirmed' : 'Thanks for letting us know') + '</h1>'
+      + '<p class="lead">' + (yes
+        ? 'See you on <b>August 8th</b>' + (name ? ', ' + esc(name) : '') + '. We’ve noted you’re coming. Details and updates are on Discord.'
+        : 'No problem' + (name ? ', ' + esc(name) : '') + '. We’ve recorded that you can’t make it and freed up your spot. You can change your mind any time by reopening this link.') + '</p>'
+      + '<div class="btns" id="switch"></div>';
+    var sw = document.getElementById('switch');
+    var other = yes ? 'no' : 'yes';
+    var b = document.createElement('button');
+    b.className = other === 'yes' ? 'yes' : 'no';
+    b.textContent = yes ? 'Actually, I can’t make it' : 'Actually, I’ll be there';
+    b.onclick = function () { submit(other); };
+    sw.appendChild(b);
+  }
+
+  function submit(response) {
+    content.innerHTML = '<div class="spin" aria-label="Saving"></div>';
+    fetch('/api/rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token, response: response })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.ok) { if (res.j && /link/i.test(res.j.error || '')) return invalid(); throw new Error((res.j && res.j.error) || 'error'); }
+        done(res.j.rsvp, res.j.firstName);
+      })
+      .catch(function () {
+        content.innerHTML = '<h1>Something went wrong</h1><p class="lead">Please try again in a moment.</p>'
+          + '<div class="btns"><button class="no" onclick="location.reload()">Retry</button></div>';
+      });
+  }
+
+  function ask(info) {
+    var greet = info.firstName ? 'Hi ' + esc(info.firstName) + ',' : 'Hi there,';
+    var trackTag = info.track ? '<div class="tag">' + esc(info.track) + ' track</div>' : '';
+    var already = info.rsvp ? '<div class="hint">You previously said you ' + (info.rsvp === 'yes' ? 'are coming' : 'can’t make it') + '. You can update it below.</div>' : '';
+    content.innerHTML = trackTag
+      + '<h1>' + greet + ' are you coming?</h1>'
+      + '<p class="lead">You’re approved for <b>Embedded</b> on <b>Saturday, August 8, 2026</b> at Microsoft, Bengaluru. Let us know so we can plan hardware, food, and seating. This isn’t binding.</p>'
+      + '<div class="btns">'
+      + '<button class="yes" id="bYes">I’ll be there</button>'
+      + '<button class="no" id="bNo">Can’t make it</button>'
+      + '</div>' + already;
+    document.getElementById('bYes').onclick = function () { submit('yes'); };
+    document.getElementById('bNo').onclick = function () { submit('no'); };
+  }
+
+  if (!token) { invalid(); return; }
+  fetch('/api/rsvp?token=' + encodeURIComponent(token))
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+      if (!res.ok || !res.j.ok) return invalid();
+      // If the email button carried an intent, still show the choice so a link
+      // pre-fetch by a mail scanner can never silently record an answer.
+      ask(res.j);
+      if (intent === 'yes' || intent === 'no') {
+        var id = intent === 'yes' ? 'bYes' : 'bNo';
+        var b = document.getElementById(id); if (b) b.focus();
+      }
+    })
+    .catch(invalid);
+})();
+</script>
+</body>
+</html>

@@ -20,7 +20,7 @@ const crypto = require('crypto');
 
 // Email copy is shared with the serverless path (lib/email.js) so both deploys
 // send identical subjects/bodies.
-const { SUBJECTS, pendingEmail, pendingText, approvedEmail, approvedText } = require('./lib/emailContent');
+const { SUBJECTS, pendingEmail, pendingText, approvedEmail, approvedText, rsvpRequestEmail, rsvpRequestText } = require('./lib/emailContent');
 
 const ROOT = __dirname;
 
@@ -70,6 +70,9 @@ if (!RESEND_API_KEY) {
  * -------------------------------------------------------------------- */
 const FIELDS = ['fullName', 'email', 'phone', 'role', 'college', 'company', 'designation', 'experience', 'linkedin', 'xurl', 'track'];
 
+// Opaque, unguessable capability token that gates the public RSVP link.
+const genToken = () => crypto.randomBytes(16).toString('hex');
+
 /* --- Postgres implementation --- */
 function pgSsl(connString) {
   // Local connections: no TLS. Remote: verify the server cert when possible.
@@ -94,6 +97,9 @@ function makePgStore(connString, PoolClass) {
     fullName: r.full_name, email: r.email, phone: r.phone, role: r.role, college: r.college,
     company: r.company, designation: r.designation, experience: r.experience,
     linkedin: r.linkedin, xurl: r.xurl, track: r.track,
+    rsvp: r.rsvp || null,
+    rsvpAt: (r.rsvp_at instanceof Date ? r.rsvp_at.toISOString() : r.rsvp_at) || null,
+    rsvpToken: r.rsvp_token || null,
   });
 
   return {
@@ -108,12 +114,22 @@ function makePgStore(connString, PoolClass) {
         company     TEXT, designation TEXT, experience TEXT,
         linkedin    TEXT, xurl TEXT, track TEXT
       )`);
+      // RSVP columns (added later — migrate in place, then backfill tokens).
+      await pool.query(`ALTER TABLE registrations
+        ADD COLUMN IF NOT EXISTS rsvp        TEXT,
+        ADD COLUMN IF NOT EXISTS rsvp_at     TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS rsvp_token  TEXT`);
+      const miss = await pool.query('SELECT id FROM registrations WHERE rsvp_token IS NULL');
+      for (const r of miss.rows) {
+        await pool.query('UPDATE registrations SET rsvp_token=$1 WHERE id=$2', [genToken(), r.id]);
+      }
+      await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS registrations_rsvp_token_idx ON registrations(rsvp_token)');
     },
     async create(f) {
       const { rows } = await pool.query(
-        `INSERT INTO registrations (full_name,email,phone,role,college,company,designation,experience,linkedin,xurl,track)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-        [f.fullName, f.email, f.phone, f.role, f.college, f.company, f.designation, f.experience, f.linkedin, f.xurl, f.track]
+        `INSERT INTO registrations (full_name,email,phone,role,college,company,designation,experience,linkedin,xurl,track,rsvp_token)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        [f.fullName, f.email, f.phone, f.role, f.college, f.company, f.designation, f.experience, f.linkedin, f.xurl, f.track, genToken()]
       );
       return map(rows[0]);
     },
@@ -150,6 +166,17 @@ function makePgStore(connString, PoolClass) {
       const upd = await pool.query(`UPDATE registrations SET status=$1, updated_at=now() WHERE id IN (${inList})`, [status]);
       return { count: upd.rowCount, approved };
     },
+    async getByToken(token) {
+      const { rows } = await pool.query('SELECT * FROM registrations WHERE rsvp_token=$1', [token]);
+      return rows.length ? map(rows[0]) : null;
+    },
+    async setRsvp(token, response) {
+      const { rows } = await pool.query(
+        'UPDATE registrations SET rsvp=$1, rsvp_at=now(), updated_at=now() WHERE rsvp_token=$2 RETURNING *',
+        [response, token]
+      );
+      return rows.length ? map(rows[0]) : null;
+    },
   };
 }
 
@@ -162,12 +189,21 @@ function makeJsonStore() {
 
   return {
     kind: 'json',
-    async init() { /* file created lazily on first write */ },
+    async init() {
+      // Backfill RSVP fields/tokens onto records created before the feature.
+      let changed = false;
+      state.registrations.forEach((r) => {
+        if (!r.rsvpToken) { r.rsvpToken = genToken(); changed = true; }
+        if (r.rsvp === undefined) { r.rsvp = null; r.rsvpAt = null; changed = true; }
+      });
+      if (changed) persist();
+    },
     async create(f) {
       state.seq += 1;
       const now = new Date().toISOString();
       const rec = { id: state.seq, status: 'pending', createdAt: now, updatedAt: now };
       FIELDS.forEach((k) => { rec[k] = f[k]; });
+      rec.rsvp = null; rec.rsvpAt = null; rec.rsvpToken = genToken();
       state.registrations.push(rec);
       persist();
       return withPos(rec);
@@ -198,6 +234,17 @@ function makeJsonStore() {
       });
       persist();
       return { count, approved };
+    },
+    async getByToken(token) {
+      const rec = state.registrations.find((r) => r.rsvpToken === token);
+      return rec ? withPos(rec) : null;
+    },
+    async setRsvp(token, response) {
+      const rec = state.registrations.find((r) => r.rsvpToken === token);
+      if (!rec) return null;
+      rec.rsvp = response; rec.rsvpAt = new Date().toISOString(); rec.updatedAt = rec.rsvpAt;
+      persist();
+      return withPos(rec);
     },
   };
 }
@@ -309,6 +356,8 @@ function sendEmail(to, subject, html, text) {
 // Email bodies + subjects come from lib/emailContent (shared with lib/email.js).
 function sendPending(reg) { sendEmail(reg.email, SUBJECTS.pending, pendingEmail(reg), pendingText(reg)); }
 function sendApproved(reg) { sendEmail(reg.email, SUBJECTS.approved, approvedEmail(reg), approvedText(reg)); }
+function sendRsvpRequest(reg) { return sendEmail(reg.email, SUBJECTS.rsvp, rsvpRequestEmail(reg), rsvpRequestText(reg)); }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ------------------------------- routes ------------------------------- */
 async function handleApi(req, res, url) {
@@ -346,6 +395,26 @@ async function handleApi(req, res, url) {
     return sendJSON(res, 201, { ok: true, id: reg.id, position: reg.position });
   }
 
+  // Public: RSVP via the emailed capability link. The token is the auth — no login.
+  if (pathname === '/api/rsvp' && req.method === 'GET') {
+    const token = url.searchParams.get('token') || '';
+    const rec = token ? await db.getByToken(token) : null;
+    if (!rec) return sendJSON(res, 404, { ok: false, error: 'invalid or expired link' });
+    return sendJSON(res, 200, { ok: true, firstName: (rec.fullName || '').split(' ')[0], track: rec.track || '', status: rec.status, rsvp: rec.rsvp });
+  }
+  if (pathname === '/api/rsvp' && req.method === 'POST') {
+    const ip = clientIp(req);
+    if (!rateLimit(`rsvp:${ip}`, 30, 60 * 1000)) return sendJSON(res, 429, { ok: false, error: 'Too many requests. Please try again shortly.' });
+    let body;
+    try { body = await readBody(req); } catch (e) { return sendJSON(res, 400, { ok: false, error: e.message }); }
+    const token = String(body.token || '');
+    const response = String(body.response || '');
+    if (!['yes', 'no'].includes(response)) return sendJSON(res, 400, { ok: false, error: 'response must be yes or no' });
+    const rec = token ? await db.setRsvp(token, response) : null;
+    if (!rec) return sendJSON(res, 404, { ok: false, error: 'invalid or expired link' });
+    return sendJSON(res, 200, { ok: true, rsvp: rec.rsvp, firstName: (rec.fullName || '').split(' ')[0] });
+  }
+
   // Everything below is admin-only
   if (pathname.startsWith('/api/registrations') || pathname === '/api/stats') {
     if (!ADMIN_TOKEN) return sendJSON(res, 503, { ok: false, error: 'admin API not configured' });
@@ -376,6 +445,19 @@ async function handleApi(req, res, url) {
     const { count, approved } = await db.bulkSetStatus(ids, status);
     approved.forEach(sendApproved); // approval emails for the newly-approved
     return sendJSON(res, 200, { ok: true, count });
+  }
+
+  // Admin: send the standalone RSVP request email to all approved builders.
+  if (pathname === '/api/registrations/send-rsvp' && req.method === 'POST') {
+    const list = await db.list();
+    const recipients = list.filter((r) => r.status === 'approved' && r.rsvpToken && r.email);
+    // Respond immediately; send in the background, gently throttled so we stay
+    // under Resend's rate limit even for a large approved cohort.
+    (async () => {
+      for (const r of recipients) { await sendRsvpRequest(r); await sleep(200); }
+      console.log(`[rsvp] sent RSVP request to ${recipients.length} approved builder(s)`);
+    })().catch((e) => console.error('[rsvp] blast error:', e.message));
+    return sendJSON(res, 200, { ok: true, count: recipients.length });
   }
 
   // Admin: set status  POST /api/registrations/:id/status  { status }
