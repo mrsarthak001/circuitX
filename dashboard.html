@@ -44,12 +44,12 @@ a{color:var(--teal)}
 main{padding:28px 0 90px}
 
 /* stat cards */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
 @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
 .stat{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0));border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 .stat .n{font-family:var(--body);font-weight:700;font-size:30px;letter-spacing:-1px}
 .stat .l{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
-.stat.p .n{color:var(--warn)} .stat.a .n{color:var(--ok)} .stat.r .n{color:var(--err)}
+.stat.p .n{color:var(--warn)} .stat.a .n{color:var(--ok)} .stat.r .n{color:var(--err)} .stat.c .n{color:var(--teal)}
 
 /* controls */
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
@@ -97,6 +97,9 @@ tbody tr.sel{background:rgba(79,196,209,.07)}
 .badge.pending{color:var(--warn);border-color:rgba(243,182,63,.4)}.badge.pending::before{background:var(--warn)}
 .badge.approved{color:var(--ok);border-color:rgba(79,196,138,.4)}.badge.approved::before{background:var(--ok)}
 .badge.rejected{color:var(--err);border-color:rgba(240,120,91,.4)}.badge.rejected::before{background:var(--err)}
+.badge.rsvp-yes{color:var(--teal);border-color:rgba(79,196,209,.4)}.badge.rsvp-yes::before{background:var(--teal)}
+.badge.rsvp-no{color:var(--err);border-color:rgba(240,120,91,.4)}.badge.rsvp-no::before{background:var(--err)}
+.rsvp-none{font-family:var(--mono);font-size:12px;color:var(--faint)}
 .actions{display:flex;gap:8px;white-space:nowrap}
 .empty{text-align:center;color:var(--muted);padding:60px 20px;font-family:var(--mono);font-size:13px}
 /* checkboxes */
@@ -159,6 +162,7 @@ td.cx,th.cx{width:44px;padding-right:0}
       <div class="bar-actions">
         <button class="btn sm" id="refreshBtn">↻ Refresh</button>
         <button class="btn sm" id="downloadBtn">↓ Download sheet</button>
+        <button class="btn sm" id="rsvpMailBtn">✉ Send RSVP to approved</button>
         <button class="btn sm" id="logoutBtn">Sign out</button>
       </div>
     </div>
@@ -170,6 +174,7 @@ td.cx,th.cx{width:44px;padding-right:0}
       <div class="stat p"><div class="n" id="stPending">0</div><div class="l">Pending</div></div>
       <div class="stat a"><div class="n" id="stApproved">0</div><div class="l">Approved</div></div>
       <div class="stat r"><div class="n" id="stRejected">0</div><div class="l">Rejected</div></div>
+      <div class="stat c"><div class="n" id="stConfirmed">0</div><div class="l">RSVP&#39;d yes</div></div>
     </div>
 
     <div class="controls">
@@ -187,6 +192,7 @@ td.cx,th.cx{width:44px;padding-right:0}
       <select id="fTrack"><option value="">All tracks</option></select>
       <select id="fRole"><option value="">All roles</option></select>
       <select id="fExp"><option value="">All experience</option></select>
+      <select id="fRsvp"><option value="">All RSVP</option><option value="yes">RSVP&#39;d yes</option><option value="no">RSVP&#39;d no</option><option value="none">No response</option></select>
       <button class="reset" id="resetFilters" hidden>Reset filters</button>
     </div>
 
@@ -204,7 +210,7 @@ td.cx,th.cx{width:44px;padding-right:0}
           <tr>
             <th class="cx"><input type="checkbox" class="cbx" id="selAll" title="Select all"></th>
             <th>#</th><th>Applicant</th><th>Contact</th><th>Background</th>
-            <th>Track</th><th>Profiles</th><th>Submitted</th><th>Status</th><th>Action</th>
+            <th>Track</th><th>Profiles</th><th>Submitted</th><th>Status</th><th>RSVP</th><th>Action</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -336,15 +342,23 @@ td.cx,th.cx{width:44px;padding-right:0}
     if(r.role==='working') return esc([r.designation, r.company].filter(Boolean).join(' · '));
     return esc(roleMap[r.role]||r.role||'-');
   }
+  function rsvpBadge(rsvp){
+    if(rsvp==='yes') return '<span class="badge rsvp-yes">Yes</span>';
+    if(rsvp==='no') return '<span class="badge rsvp-no">No</span>';
+    return '<span class="rsvp-none">—</span>';
+  }
+  var rsvpLabel = {yes:'Confirmed', no:'Declined'};
 
   /* ---------- render table ---------- */
   function visible(){
-    var ft = el('fTrack').value, fr = el('fRole').value, fe = el('fExp').value;
+    var ft = el('fTrack').value, fr = el('fRole').value, fe = el('fExp').value, fv = el('fRsvp').value;
     return all.filter(function(r){
       if(filter!=='all' && r.status!==filter) return false;
       if(ft && r.track!==ft) return false;
       if(fr && r.role!==fr) return false;
       if(fe && r.experience!==fe) return false;
+      if(fv==='none' && r.rsvp) return false;
+      if((fv==='yes'||fv==='no') && r.rsvp!==fv) return false;
       if(!q) return true;
       var hay = (r.fullName+' '+r.email+' '+r.phone+' '+r.track+' '+r.company+' '+r.college+' '+r.designation).toLowerCase();
       return hay.indexOf(q)>-1;
@@ -369,13 +383,14 @@ td.cx,th.cx{width:44px;padding-right:0}
   }
   function syncFilterUI(){
     var active = false;
-    ['fTrack','fRole','fExp'].forEach(function(id){
+    ['fTrack','fRole','fExp','fRsvp'].forEach(function(id){
       var on = !!el(id).value; el(id).classList.toggle('on', on); if(on) active = true;
     });
     el('resetFilters').hidden = !active;
   }
   function render(){
     var list = visible();
+    el('stConfirmed').textContent = all.filter(function(r){ return r.rsvp==='yes'; }).length;
     el('empty').hidden = list.length>0;
     el('rows').innerHTML = list.map(function(r){
       var checked = selected.has(r.id) ? 'checked' : '';
@@ -390,6 +405,7 @@ td.cx,th.cx{width:44px;padding-right:0}
         + '<td class="links">'+shortLink(r.linkedin)+' '+shortLink(r.xurl)+'</td>'
         + '<td class="sub">'+fmtDate(r.createdAt)+'</td>'
         + '<td><span class="badge '+esc(r.status)+'">'+esc(r.status)+'</span></td>'
+        + '<td>'+rsvpBadge(r.rsvp)+'</td>'
         + '<td><div class="actions">'
           + '<button class="btn sm ok" '+(r.status==='approved'?'disabled':'')+' data-act="approve" data-id="'+r.id+'">Approve</button>'
           + '<button class="btn sm err" '+(r.status==='rejected'?'disabled':'')+' data-act="reject" data-id="'+r.id+'">Reject</button>'
@@ -410,13 +426,15 @@ td.cx,th.cx{width:44px;padding-right:0}
       ['position','#'], ['fullName','Name'], ['email','Email'], ['phone','Phone'],
       ['role','Role'], ['experience','Experience (yrs)'], ['college','College'],
       ['company','Company'], ['designation','Designation'], ['track','Track'],
-      ['linkedin','LinkedIn'], ['xurl','X / Twitter'], ['status','Status'], ['createdAt','Submitted']
+      ['linkedin','LinkedIn'], ['xurl','X / Twitter'], ['status','Status'],
+      ['rsvp','RSVP'], ['rsvpAt','RSVP At'], ['createdAt','Submitted']
     ];
     var lines = [cols.map(function(c){ return csvCell(c[1]); }).join(',')];
     list.forEach(function(r){
       lines.push(cols.map(function(c){
         var v = r[c[0]];
         if(c[0]==='role') v = roleMap[v]||v;
+        else if(c[0]==='rsvp') v = rsvpLabel[v] || 'No response';
         return csvCell(v);
       }).join(','));
     });
@@ -429,6 +447,25 @@ td.cx,th.cx{width:44px;padding-right:0}
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
     toast('Downloaded '+list.length+' row'+(list.length===1?'':'s'));
+  }
+
+  /* ---------- send RSVP request to approved ---------- */
+  function sendRsvpToApproved(){
+    var approved = all.filter(function(r){ return r.status==='approved'; });
+    var n = approved.length;
+    if(!n){ toast('No approved builders to email yet'); return; }
+    var pending = approved.filter(function(r){ return !r.rsvp; }).length;
+    if(!confirm('Send the RSVP request email to all '+n+' approved builder'+(n===1?'':'s')+'?\n\n'
+      + pending+' haven’t responded yet. This emails everyone approved (a reminder for those who already RSVP’d).')) return;
+    var btn = el('rsvpMailBtn'); btn.disabled = true; var old = btn.textContent; btn.textContent = 'Sending…';
+    fetch('/api/registrations/send-rsvp', { method:'POST', headers: headers() })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(res){
+        if(!res.ok || !res.j.ok){ if(res.j && res.j.error==='unauthorized'){ showLogin('Session expired, sign in again.'); return; } throw new Error((res.j&&res.j.error)||'error'); }
+        toast('RSVP email queued for '+res.j.count+' approved builder'+(res.j.count===1?'':'s'));
+      })
+      .catch(function(){ toast('Failed to send RSVP emails'); })
+      .then(function(){ btn.disabled = false; btn.textContent = old; });
   }
 
   function syncSelUI(){
@@ -460,6 +497,7 @@ td.cx,th.cx{width:44px;padding-right:0}
       ['LinkedIn', link(r.linkedin)],
       ['X (Twitter)', link(r.xurl)],
       ['Track', esc(r.track)],
+      ['RSVP', r.rsvp ? esc(rsvpLabel[r.rsvp]||r.rsvp)+(r.rsvpAt?' · '+fmtDate(r.rsvpAt):'') : 'No response'],
       ['Submitted', fmtDate(r.createdAt)],
       ['Last updated', fmtDate(r.updatedAt)]
     ];
@@ -498,10 +536,11 @@ td.cx,th.cx{width:44px;padding-right:0}
     render();
   });
   el('search').addEventListener('input', function(e){ q = e.target.value.trim().toLowerCase(); render(); });
-  ['fTrack','fRole','fExp'].forEach(function(id){ el(id).addEventListener('change', function(){ syncFilterUI(); render(); }); });
-  el('resetFilters').addEventListener('click', function(){ el('fTrack').value=''; el('fRole').value=''; el('fExp').value=''; syncFilterUI(); render(); });
+  ['fTrack','fRole','fExp','fRsvp'].forEach(function(id){ el(id).addEventListener('change', function(){ syncFilterUI(); render(); }); });
+  el('resetFilters').addEventListener('click', function(){ el('fTrack').value=''; el('fRole').value=''; el('fExp').value=''; el('fRsvp').value=''; syncFilterUI(); render(); });
   el('refreshBtn').addEventListener('click', load);
   el('downloadBtn').addEventListener('click', downloadCSV);
+  el('rsvpMailBtn').addEventListener('click', sendRsvpToApproved);
   el('bulkApprove').addEventListener('click', function(){ bulkStatus('approved'); });
   el('bulkReject').addEventListener('click', function(){ bulkStatus('rejected'); });
   el('bulkClear').addEventListener('click', function(){ selected.clear(); render(); });
