@@ -125,8 +125,11 @@
     .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
     .then(function (res) {
       if (!res.ok || !res.j.ok) return invalid();
-      // If the email button carried an intent, still show the choice so a link
-      // pre-fetch by a mail scanner can never silently record an answer.
+      // Already responded (e.g. a page refresh): show their current answer with
+      // the option to change it, rather than asking again.
+      if (res.j.rsvp === 'yes' || res.j.rsvp === 'no') { done(res.j.rsvp, res.j.firstName); return; }
+      // Otherwise ask. If the email button carried an intent, still show the
+      // choice so a link pre-fetch by a mail scanner can't silently record it.
       ask(res.j);
       if (intent === 'yes' || intent === 'no') {
         var id = intent === 'yes' ? 'bYes' : 'bNo';
