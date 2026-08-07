@@ -1,7 +1,7 @@
 // POST /api/registrations/bulk-status  (admin)  { ids:[], status }
 const { getPool, ensureTable, mapRow } = require('../../lib/db');
 const { isAdmin } = require('../../lib/util');
-const { sendApproved } = require('../../lib/email');
+const { sendApproved, sendVirtual } = require('../../lib/email');
 
 module.exports = async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
@@ -16,13 +16,13 @@ module.exports = async (req, res) => {
 
   try {
     await ensureTable();
-    let approved = [];
-    if (status === 'approved') {
-      const sel = await getPool().query(`SELECT * FROM registrations WHERE id IN (${inList}) AND status <> 'approved'`);
-      approved = sel.rows.map(mapRow);
-    }
+    // Rows that actually change TO this status — used for one-time emails.
+    const sel = await getPool().query(`SELECT * FROM registrations WHERE id IN (${inList}) AND status <> $1`, [status]);
+    const transitioned = sel.rows.map(mapRow);
     const upd = await getPool().query(`UPDATE registrations SET status=$1, updated_at=now() WHERE id IN (${inList})`, [status]);
-    for (const r of approved) { await sendApproved(r); } // await: serverless
+    // approve -> "You're In"; reject -> Virtual invite. await: serverless freezes after response.
+    const mailer = status === 'approved' ? sendApproved : status === 'rejected' ? sendVirtual : null;
+    if (mailer) { for (const r of transitioned) { await mailer(r); } }
     return res.status(200).json({ ok: true, count: upd.rowCount });
   } catch (e) {
     console.error('[bulk-status]', e.message);

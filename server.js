@@ -20,7 +20,7 @@ const crypto = require('crypto');
 
 // Email copy is shared with the serverless path (lib/email.js) so both deploys
 // send identical subjects/bodies.
-const { SUBJECTS, pendingEmail, pendingText, approvedEmail, approvedText, rsvpRequestEmail, rsvpRequestText } = require('./lib/emailContent');
+const { SUBJECTS, pendingEmail, pendingText, approvedEmail, approvedText, rsvpRequestEmail, rsvpRequestText, virtualEmail, virtualText, virtualSubject } = require('./lib/emailContent');
 
 const ROOT = __dirname;
 
@@ -156,15 +156,13 @@ function makePgStore(connString, PoolClass) {
     async bulkSetStatus(ids, status) {
       // Coerce to a safe, inlined integer list (values are numbers only -> no injection).
       const safe = ids.filter((n) => Number.isInteger(n));
-      if (!safe.length) return { count: 0, approved: [] };
+      if (!safe.length) return { count: 0, transitioned: [] };
       const inList = safe.join(',');
-      let approved = [];
-      if (status === 'approved') {
-        const sel = await pool.query(`SELECT * FROM registrations WHERE id IN (${inList}) AND status <> 'approved'`);
-        approved = sel.rows.map(map);
-      }
+      // Rows that actually change TO this status — used for one-time emails.
+      const sel = await pool.query(`SELECT * FROM registrations WHERE id IN (${inList}) AND status <> $1`, [status]);
+      const transitioned = sel.rows.map(map);
       const upd = await pool.query(`UPDATE registrations SET status=$1, updated_at=now() WHERE id IN (${inList})`, [status]);
-      return { count: upd.rowCount, approved };
+      return { count: upd.rowCount, transitioned };
     },
     async getByToken(token) {
       const { rows } = await pool.query('SELECT * FROM registrations WHERE rsvp_token=$1', [token]);
@@ -224,16 +222,17 @@ function makeJsonStore() {
     },
     async bulkSetStatus(ids, status) {
       const now = new Date().toISOString();
-      const approved = [];
+      const transitioned = [];
       let count = 0;
       state.registrations.forEach((r) => {
         if (ids.indexOf(r.id) > -1) {
-          if (status === 'approved' && r.status !== 'approved') approved.push(withPos(r));
+          const changed = r.status !== status;
           r.status = status; r.updatedAt = now; count += 1;
+          if (changed) transitioned.push(withPos(r));
         }
       });
       persist();
-      return { count, approved };
+      return { count, transitioned };
     },
     async getByToken(token) {
       const rec = state.registrations.find((r) => r.rsvpToken === token);
@@ -357,6 +356,7 @@ function sendEmail(to, subject, html, text) {
 function sendPending(reg) { sendEmail(reg.email, SUBJECTS.pending, pendingEmail(reg), pendingText(reg)); }
 function sendApproved(reg) { sendEmail(reg.email, SUBJECTS.approved, approvedEmail(reg), approvedText(reg)); }
 function sendRsvpRequest(reg) { return sendEmail(reg.email, SUBJECTS.rsvp, rsvpRequestEmail(reg), rsvpRequestText(reg)); }
+function sendVirtual(reg) { return sendEmail(reg.email, virtualSubject(reg), virtualEmail(reg), virtualText(reg)); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ------------------------------- routes ------------------------------- */
@@ -442,8 +442,13 @@ async function handleApi(req, res, url) {
       return sendJSON(res, 400, { ok: false, error: 'status must be pending, approved or rejected' });
     }
     const ids = Array.isArray(body.ids) ? body.ids.map(Number) : [];
-    const { count, approved } = await db.bulkSetStatus(ids, status);
-    approved.forEach(sendApproved); // approval emails for the newly-approved
+    const { count, transitioned } = await db.bulkSetStatus(ids, status);
+    // One-time email on transition: approve -> "You're In"; reject -> Virtual invite.
+    const mailer = status === 'approved' ? sendApproved : status === 'rejected' ? sendVirtual : null;
+    if (mailer && transitioned.length) {
+      (async () => { for (const r of transitioned) { await mailer(r); await sleep(200); } })()
+        .catch((e) => console.error('[bulk-mail]', e.message));
+    }
     return sendJSON(res, 200, { ok: true, count });
   }
 
@@ -471,7 +476,9 @@ async function handleApi(req, res, url) {
     }
     const result = await db.setStatus(Number(m[1]), status);
     if (!result) return sendJSON(res, 404, { ok: false, error: 'not found' });
-    if (status === 'approved' && result.prev !== 'approved') sendApproved(result.record); // send once, on transition
+    // Send once, on transition: approve -> "You're In"; reject -> Virtual invite.
+    if (status === 'approved' && result.prev !== 'approved') sendApproved(result.record);
+    else if (status === 'rejected' && result.prev !== 'rejected') sendVirtual(result.record);
     return sendJSON(res, 200, { ok: true, registration: result.record });
   }
 

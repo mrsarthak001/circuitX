@@ -351,18 +351,19 @@ td.cx,th.cx{width:44px;padding-right:0}
       if(i>-1) all[i] = res.registration;
       recount(); render();
       if(modalId===id) openModal(all[i]);
-      toast('Marked '+status);
+      toast(status==='rejected' ? 'Rejected — online-track invite sent' : status==='approved' ? 'Approved — email sent' : 'Marked '+status);
     }).catch(function(){ toast('Failed'); });
   }
   function bulkStatus(status){
     var ids = Array.from(selected);
     if(!ids.length) return;
+    if(status==='rejected' && !confirm('Reject '+ids.length+' selected?\n\nEach gets emailed the online (Virtual Embedded) track invite.')) return;
     fetch('/api/registrations/bulk-status', {
       method:'POST', headers: headers(), body: JSON.stringify({ ids: ids, status: status })
     }).then(function(r){ return r.json(); }).then(function(res){
       if(!res.ok){ toast(res.error||'Failed'); return; }
       selected.clear();
-      toast(res.count+' marked '+status);
+      toast(status==='rejected' ? res.count+' rejected — online invites sending' : status==='approved' ? res.count+' approved — emails sending' : res.count+' marked '+status);
       load();
     }).catch(function(){ toast('Failed'); });
   }

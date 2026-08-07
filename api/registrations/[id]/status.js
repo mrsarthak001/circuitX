@@ -1,7 +1,7 @@
 // POST /api/registrations/:id/status  (admin)  { status }
 const { getPool, ensureTable, mapRow } = require('../../../lib/db');
 const { isAdmin } = require('../../../lib/util');
-const { sendApproved } = require('../../../lib/email');
+const { sendApproved, sendVirtual } = require('../../../lib/email');
 
 module.exports = async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
@@ -22,7 +22,9 @@ module.exports = async (req, res) => {
       'UPDATE registrations SET status=$1, updated_at=now() WHERE id=$2 RETURNING *', [status, id]
     );
     const reg = mapRow(rows[0]);
-    if (status === 'approved' && prev !== 'approved') await sendApproved(reg); // await: serverless
+    // await: serverless freezes after the response
+    if (status === 'approved' && prev !== 'approved') await sendApproved(reg);
+    else if (status === 'rejected' && prev !== 'rejected') await sendVirtual(reg);
     return res.status(200).json({ ok: true, registration: reg });
   } catch (e) {
     console.error('[status]', e.message);
