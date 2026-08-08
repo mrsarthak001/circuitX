@@ -446,10 +446,13 @@ td.cx,th.cx{width:44px;padding-right:0}
   function render(){
     var list = visible();
     el('stConfirmed').textContent = all.filter(function(r){ return r.rsvp==='yes'; }).length;
-    el('stVYes').textContent = all.filter(function(r){ return r.virtualRsvp==='yes'; }).length;
-    el('stVNo').textContent = all.filter(function(r){ return r.virtualRsvp==='no'; }).length;
-    el('stVInvited').textContent = all.filter(function(r){ return r.status==='rejected'; }).length;
-    el('stVNone').textContent = all.filter(function(r){ return r.status==='rejected' && !r.virtualRsvp; }).length;
+    // All four count the same population (the invited/rejected pool) so they
+    // reconcile: Confirmed + Declined + No response = Invited.
+    var vInvited = all.filter(function(r){ return r.status==='rejected'; });
+    el('stVInvited').textContent = vInvited.length;
+    el('stVYes').textContent = vInvited.filter(function(r){ return r.virtualRsvp==='yes'; }).length;
+    el('stVNo').textContent = vInvited.filter(function(r){ return r.virtualRsvp==='no'; }).length;
+    el('stVNone').textContent = vInvited.filter(function(r){ return !r.virtualRsvp; }).length;
     el('empty').hidden = list.length>0;
     el('rows').innerHTML = list.map(function(r){
       var checked = selected.has(r.id) ? 'checked' : '';
