@@ -196,7 +196,7 @@ td.cx,th.cx{width:44px;padding-right:0}
         <div class="vp-stat"><b id="stVYes">0</b><span>Confirmed</span></div>
         <div class="vp-stat"><b id="stVNo">0</b><span>Declined</span></div>
         <div class="vp-stat"><b id="stVNone">0</b><span>No response</span></div>
-        <div class="vp-stat"><b id="stVInvited">0</b><span>Invited (rejected)</span></div>
+        <div class="vp-stat"><b id="stVInvited">0</b><span>Invited</span></div>
       </div>
     </div>
 
@@ -446,9 +446,9 @@ td.cx,th.cx{width:44px;padding-right:0}
   function render(){
     var list = visible();
     el('stConfirmed').textContent = all.filter(function(r){ return r.rsvp==='yes'; }).length;
-    // All four count the same population (the invited/rejected pool) so they
-    // reconcile: Confirmed + Declined + No response = Invited.
-    var vInvited = all.filter(function(r){ return r.status==='rejected'; });
+    // All four count the same population (everyone invited to the virtual
+    // event) so they reconcile: Confirmed + Declined + No response = Invited.
+    var vInvited = all.filter(function(r){ return r.virtualInvited; });
     el('stVInvited').textContent = vInvited.length;
     el('stVYes').textContent = vInvited.filter(function(r){ return r.virtualRsvp==='yes'; }).length;
     el('stVNo').textContent = vInvited.filter(function(r){ return r.virtualRsvp==='no'; }).length;

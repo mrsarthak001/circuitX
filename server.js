@@ -102,6 +102,7 @@ function makePgStore(connString, PoolClass) {
     rsvpToken: r.rsvp_token || null,
     virtualRsvp: r.virtual_rsvp || null,
     virtualRsvpAt: (r.virtual_rsvp_at instanceof Date ? r.virtual_rsvp_at.toISOString() : r.virtual_rsvp_at) || null,
+    virtualInvited: r.virtual_invited === true,
   });
 
   return {
@@ -121,8 +122,9 @@ function makePgStore(connString, PoolClass) {
         ADD COLUMN IF NOT EXISTS rsvp            TEXT,
         ADD COLUMN IF NOT EXISTS rsvp_at         TIMESTAMPTZ,
         ADD COLUMN IF NOT EXISTS rsvp_token      TEXT,
-        ADD COLUMN IF NOT EXISTS virtual_rsvp    TEXT,
-        ADD COLUMN IF NOT EXISTS virtual_rsvp_at TIMESTAMPTZ`);
+        ADD COLUMN IF NOT EXISTS virtual_rsvp     TEXT,
+        ADD COLUMN IF NOT EXISTS virtual_rsvp_at  TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS virtual_invited  BOOLEAN NOT NULL DEFAULT false`);
       const miss = await pool.query('SELECT id FROM registrations WHERE rsvp_token IS NULL');
       for (const r of miss.rows) {
         await pool.query('UPDATE registrations SET rsvp_token=$1 WHERE id=$2', [genToken(), r.id]);
@@ -186,6 +188,9 @@ function makePgStore(connString, PoolClass) {
       );
       return rows.length ? map(rows[0]) : null;
     },
+    async markVirtualInvited(id) {
+      await pool.query('UPDATE registrations SET virtual_invited=true WHERE id=$1', [id]);
+    },
   };
 }
 
@@ -205,6 +210,7 @@ function makeJsonStore() {
         if (!r.rsvpToken) { r.rsvpToken = genToken(); changed = true; }
         if (r.rsvp === undefined) { r.rsvp = null; r.rsvpAt = null; changed = true; }
         if (r.virtualRsvp === undefined) { r.virtualRsvp = null; r.virtualRsvpAt = null; changed = true; }
+        if (r.virtualInvited === undefined) { r.virtualInvited = false; changed = true; }
       });
       if (changed) persist();
     },
@@ -214,7 +220,7 @@ function makeJsonStore() {
       const rec = { id: state.seq, status: 'pending', createdAt: now, updatedAt: now };
       FIELDS.forEach((k) => { rec[k] = f[k]; });
       rec.rsvp = null; rec.rsvpAt = null; rec.rsvpToken = genToken();
-      rec.virtualRsvp = null; rec.virtualRsvpAt = null;
+      rec.virtualRsvp = null; rec.virtualRsvpAt = null; rec.virtualInvited = false;
       state.registrations.push(rec);
       persist();
       return withPos(rec);
@@ -264,6 +270,10 @@ function makeJsonStore() {
       rec.virtualRsvp = response; rec.virtualRsvpAt = new Date().toISOString(); rec.updatedAt = rec.virtualRsvpAt;
       persist();
       return withPos(rec);
+    },
+    async markVirtualInvited(id) {
+      const rec = state.registrations.find((r) => r.id === id);
+      if (rec) { rec.virtualInvited = true; persist(); }
     },
   };
 }
@@ -469,8 +479,9 @@ async function handleApi(req, res, url) {
     // One-time email on transition: approve -> "You're In"; reject -> Virtual invite.
     const mailer = status === 'approved' ? sendApproved : status === 'rejected' ? sendVirtual : null;
     if (mailer && transitioned.length) {
-      (async () => { for (const r of transitioned) { await mailer(r); await sleep(200); } })()
-        .catch((e) => console.error('[bulk-mail]', e.message));
+      (async () => {
+        for (const r of transitioned) { await mailer(r); if (status === 'rejected') await db.markVirtualInvited(r.id); await sleep(200); }
+      })().catch((e) => console.error('[bulk-mail]', e.message));
     }
     return sendJSON(res, 200, { ok: true, count });
   }
@@ -501,7 +512,7 @@ async function handleApi(req, res, url) {
     if (!result) return sendJSON(res, 404, { ok: false, error: 'not found' });
     // Send once, on transition: approve -> "You're In"; reject -> Virtual invite.
     if (status === 'approved' && result.prev !== 'approved') sendApproved(result.record);
-    else if (status === 'rejected' && result.prev !== 'rejected') sendVirtual(result.record);
+    else if (status === 'rejected' && result.prev !== 'rejected') { sendVirtual(result.record); db.markVirtualInvited(result.record.id); }
     return sendJSON(res, 200, { ok: true, registration: result.record });
   }
 

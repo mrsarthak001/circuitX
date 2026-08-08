@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     const upd = await getPool().query(`UPDATE registrations SET status=$1, updated_at=now() WHERE id IN (${inList})`, [status]);
     // approve -> "You're In"; reject -> Virtual invite. await: serverless freezes after response.
     const mailer = status === 'approved' ? sendApproved : status === 'rejected' ? sendVirtual : null;
-    if (mailer) { for (const r of transitioned) { await mailer(r); } }
+    if (mailer) { for (const r of transitioned) { await mailer(r); if (status === 'rejected') await getPool().query('UPDATE registrations SET virtual_invited=true WHERE id=$1', [r.id]); } }
     return res.status(200).json({ ok: true, count: upd.rowCount });
   } catch (e) {
     console.error('[bulk-status]', e.message);

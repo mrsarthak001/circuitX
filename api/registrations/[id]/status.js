@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
     const reg = mapRow(rows[0]);
     // await: serverless freezes after the response
     if (status === 'approved' && prev !== 'approved') await sendApproved(reg);
-    else if (status === 'rejected' && prev !== 'rejected') await sendVirtual(reg);
+    else if (status === 'rejected' && prev !== 'rejected') { await sendVirtual(reg); await getPool().query('UPDATE registrations SET virtual_invited=true WHERE id=$1', [id]); }
     return res.status(200).json({ ok: true, registration: reg });
   } catch (e) {
     console.error('[status]', e.message);
