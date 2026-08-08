@@ -53,6 +53,14 @@ main{padding:28px 0 90px}
 .stat .n{font-family:var(--body);font-weight:700;font-size:30px;letter-spacing:-1px}
 .stat .l{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .stat.p .n{color:var(--warn)} .stat.a .n{color:var(--ok)} .stat.r .n{color:var(--err)} .stat.c .n{color:var(--teal)}
+.vpanel{border:1px solid rgba(79,196,209,.25);border-radius:12px;padding:14px 18px;margin-bottom:24px;background:linear-gradient(180deg,rgba(79,196,209,.06),rgba(255,255,255,0))}
+.vp-title{font-family:var(--mono);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:12px}
+.vp-title span{color:var(--faint)}
+.vp-stats{display:flex;gap:30px;flex-wrap:wrap}
+.vp-stat{display:flex;flex-direction:column}
+.vp-stat b{font-family:var(--body);font-weight:700;font-size:22px;letter-spacing:-.5px}
+.vp-stat:nth-child(1) b{color:var(--ok)} .vp-stat:nth-child(2) b{color:var(--err)}
+.vp-stat span{font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:2px}
 
 /* controls */
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
@@ -180,6 +188,16 @@ td.cx,th.cx{width:44px;padding-right:0}
       <div class="stat a"><div class="n" id="stApproved">0</div><div class="l">Approved</div></div>
       <div class="stat r"><div class="n" id="stRejected">0</div><div class="l">Rejected</div></div>
       <div class="stat c"><div class="n" id="stConfirmed">0</div><div class="l">RSVP&#39;d yes</div></div>
+    </div>
+
+    <div class="vpanel">
+      <div class="vp-title">Virtual Buildathon <span>· Sun, Aug 9 (online)</span></div>
+      <div class="vp-stats">
+        <div class="vp-stat"><b id="stVYes">0</b><span>Confirmed</span></div>
+        <div class="vp-stat"><b id="stVNo">0</b><span>Declined</span></div>
+        <div class="vp-stat"><b id="stVNone">0</b><span>No response</span></div>
+        <div class="vp-stat"><b id="stVInvited">0</b><span>Invited (rejected)</span></div>
+      </div>
     </div>
 
     <div class="controls">
@@ -428,6 +446,10 @@ td.cx,th.cx{width:44px;padding-right:0}
   function render(){
     var list = visible();
     el('stConfirmed').textContent = all.filter(function(r){ return r.rsvp==='yes'; }).length;
+    el('stVYes').textContent = all.filter(function(r){ return r.virtualRsvp==='yes'; }).length;
+    el('stVNo').textContent = all.filter(function(r){ return r.virtualRsvp==='no'; }).length;
+    el('stVInvited').textContent = all.filter(function(r){ return r.status==='rejected'; }).length;
+    el('stVNone').textContent = all.filter(function(r){ return r.status==='rejected' && !r.virtualRsvp; }).length;
     el('empty').hidden = list.length>0;
     el('rows').innerHTML = list.map(function(r){
       var checked = selected.has(r.id) ? 'checked' : '';
@@ -464,14 +486,15 @@ td.cx,th.cx{width:44px;padding-right:0}
       ['role','Role'], ['experience','Experience (yrs)'], ['college','College'],
       ['company','Company'], ['designation','Designation'], ['track','Track'],
       ['linkedin','LinkedIn'], ['xurl','X / Twitter'], ['status','Status'],
-      ['rsvp','RSVP'], ['rsvpAt','RSVP At'], ['createdAt','Submitted']
+      ['rsvp','RSVP'], ['rsvpAt','RSVP At'],
+      ['virtualRsvp','Virtual RSVP'], ['virtualRsvpAt','Virtual RSVP At'], ['createdAt','Submitted']
     ];
     var lines = [cols.map(function(c){ return csvCell(c[1]); }).join(',')];
     list.forEach(function(r){
       lines.push(cols.map(function(c){
         var v = r[c[0]];
         if(c[0]==='role') v = roleMap[v]||v;
-        else if(c[0]==='rsvp') v = rsvpLabel[v] || 'No response';
+        else if(c[0]==='rsvp' || c[0]==='virtualRsvp') v = rsvpLabel[v] || (v?v:'No response');
         return csvCell(v);
       }).join(','));
     });
@@ -535,6 +558,7 @@ td.cx,th.cx{width:44px;padding-right:0}
       ['X (Twitter)', link(r.xurl)],
       ['Track', esc(r.track)],
       ['RSVP', r.rsvp ? esc(rsvpLabel[r.rsvp]||r.rsvp)+(r.rsvpAt?' · '+fmtDate(r.rsvpAt):'') : 'No response'],
+      ['Virtual RSVP', r.virtualRsvp ? esc(rsvpLabel[r.virtualRsvp]||r.virtualRsvp)+(r.virtualRsvpAt?' · '+fmtDate(r.virtualRsvpAt):'') : 'No response'],
       ['Submitted', fmtDate(r.createdAt)],
       ['Last updated', fmtDate(r.updatedAt)]
     ];

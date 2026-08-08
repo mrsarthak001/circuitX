@@ -58,10 +58,16 @@
 
 <script>
 (function () {
-  var DISCORD_URL = 'https://discord.gg/42k6bFFnKs';
   var params = new URLSearchParams(location.search);
   var token = params.get('token') || '';
   var intent = params.get('intent') || '';
+  var VIRTUAL = params.get('event') === 'virtual';
+  var DISCORD_URL = VIRTUAL ? 'https://discord.gg/e4DVhK5gba' : 'https://discord.gg/42k6bFFnKs';
+  var EV = VIRTUAL
+    ? { qs: '&event=virtual', when: 'Sunday, August 9th',
+        ask: 'You’re invited to the <b>Virtual Embedded</b> Buildathon on <b>Sunday, August 9, 2026</b>, online on Discord. Let us know if you’re joining.' }
+    : { qs: '', when: 'August 8th',
+        ask: 'You’re approved for <b>Embedded</b> on <b>Saturday, August 8, 2026</b> at Microsoft, Bengaluru. Let us know so we can plan hardware, food, and seating. This isn’t binding.' };
   var content = document.getElementById('content');
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
 
@@ -75,7 +81,7 @@
     content.innerHTML = '<div class="big">' + (yes ? '🎉' : '👋') + '</div>'
       + '<h1>' + (yes ? 'You’re confirmed' : 'Thanks for letting us know') + '</h1>'
       + '<p class="lead">' + (yes
-        ? 'See you on <b>August 8th</b>' + (name ? ', ' + esc(name) : '') + '. We’ve noted you’re coming. All updates happen on Discord, so join if you haven’t yet.'
+        ? 'See you on <b>' + EV.when + '</b>' + (name ? ', ' + esc(name) : '') + '. We’ve noted you’re coming. All updates happen on Discord, so join if you haven’t yet.'
         : 'No problem' + (name ? ', ' + esc(name) : '') + '. We’ve recorded that you can’t make it and freed up your spot. You can change your mind any time by reopening this link.') + '</p>'
       + (yes ? '<div class="btns"><a class="discord" href="' + DISCORD_URL + '" target="_blank" rel="noopener">Join Discord</a></div>' : '')
       + '<div class="btns" id="switch"></div>';
@@ -93,7 +99,7 @@
     fetch('/api/rsvp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: token, response: response })
+      body: JSON.stringify({ token: token, response: response, event: VIRTUAL ? 'virtual' : '' })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
         if (!res.ok || !res.j.ok) { if (res.j && /link/i.test(res.j.error || '')) return invalid(); throw new Error((res.j && res.j.error) || 'error'); }
@@ -111,7 +117,7 @@
     var already = info.rsvp ? '<div class="hint">You previously said you ' + (info.rsvp === 'yes' ? 'are coming' : 'can’t make it') + '. You can update it below.</div>' : '';
     content.innerHTML = trackTag
       + '<h1>' + greet + ' are you coming?</h1>'
-      + '<p class="lead">You’re approved for <b>Embedded</b> on <b>Saturday, August 8, 2026</b> at Microsoft, Bengaluru. Let us know so we can plan hardware, food, and seating. This isn’t binding.</p>'
+      + '<p class="lead">' + EV.ask + '</p>'
       + '<div class="btns">'
       + '<button class="yes" id="bYes">I’ll be there</button>'
       + '<button class="no" id="bNo">Can’t make it</button>'
@@ -121,7 +127,7 @@
   }
 
   if (!token) { invalid(); return; }
-  fetch('/api/rsvp?token=' + encodeURIComponent(token))
+  fetch('/api/rsvp?token=' + encodeURIComponent(token) + EV.qs)
     .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
     .then(function (res) {
       if (!res.ok || !res.j.ok) return invalid();

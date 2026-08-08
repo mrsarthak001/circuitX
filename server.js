@@ -100,6 +100,8 @@ function makePgStore(connString, PoolClass) {
     rsvp: r.rsvp || null,
     rsvpAt: (r.rsvp_at instanceof Date ? r.rsvp_at.toISOString() : r.rsvp_at) || null,
     rsvpToken: r.rsvp_token || null,
+    virtualRsvp: r.virtual_rsvp || null,
+    virtualRsvpAt: (r.virtual_rsvp_at instanceof Date ? r.virtual_rsvp_at.toISOString() : r.virtual_rsvp_at) || null,
   });
 
   return {
@@ -116,9 +118,11 @@ function makePgStore(connString, PoolClass) {
       )`);
       // RSVP columns (added later — migrate in place, then backfill tokens).
       await pool.query(`ALTER TABLE registrations
-        ADD COLUMN IF NOT EXISTS rsvp        TEXT,
-        ADD COLUMN IF NOT EXISTS rsvp_at     TIMESTAMPTZ,
-        ADD COLUMN IF NOT EXISTS rsvp_token  TEXT`);
+        ADD COLUMN IF NOT EXISTS rsvp            TEXT,
+        ADD COLUMN IF NOT EXISTS rsvp_at         TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS rsvp_token      TEXT,
+        ADD COLUMN IF NOT EXISTS virtual_rsvp    TEXT,
+        ADD COLUMN IF NOT EXISTS virtual_rsvp_at TIMESTAMPTZ`);
       const miss = await pool.query('SELECT id FROM registrations WHERE rsvp_token IS NULL');
       for (const r of miss.rows) {
         await pool.query('UPDATE registrations SET rsvp_token=$1 WHERE id=$2', [genToken(), r.id]);
@@ -175,6 +179,13 @@ function makePgStore(connString, PoolClass) {
       );
       return rows.length ? map(rows[0]) : null;
     },
+    async setVirtualRsvp(token, response) {
+      const { rows } = await pool.query(
+        'UPDATE registrations SET virtual_rsvp=$1, virtual_rsvp_at=now(), updated_at=now() WHERE rsvp_token=$2 RETURNING *',
+        [response, token]
+      );
+      return rows.length ? map(rows[0]) : null;
+    },
   };
 }
 
@@ -193,6 +204,7 @@ function makeJsonStore() {
       state.registrations.forEach((r) => {
         if (!r.rsvpToken) { r.rsvpToken = genToken(); changed = true; }
         if (r.rsvp === undefined) { r.rsvp = null; r.rsvpAt = null; changed = true; }
+        if (r.virtualRsvp === undefined) { r.virtualRsvp = null; r.virtualRsvpAt = null; changed = true; }
       });
       if (changed) persist();
     },
@@ -202,6 +214,7 @@ function makeJsonStore() {
       const rec = { id: state.seq, status: 'pending', createdAt: now, updatedAt: now };
       FIELDS.forEach((k) => { rec[k] = f[k]; });
       rec.rsvp = null; rec.rsvpAt = null; rec.rsvpToken = genToken();
+      rec.virtualRsvp = null; rec.virtualRsvpAt = null;
       state.registrations.push(rec);
       persist();
       return withPos(rec);
@@ -242,6 +255,13 @@ function makeJsonStore() {
       const rec = state.registrations.find((r) => r.rsvpToken === token);
       if (!rec) return null;
       rec.rsvp = response; rec.rsvpAt = new Date().toISOString(); rec.updatedAt = rec.rsvpAt;
+      persist();
+      return withPos(rec);
+    },
+    async setVirtualRsvp(token, response) {
+      const rec = state.registrations.find((r) => r.rsvpToken === token);
+      if (!rec) return null;
+      rec.virtualRsvp = response; rec.virtualRsvpAt = new Date().toISOString(); rec.updatedAt = rec.virtualRsvpAt;
       persist();
       return withPos(rec);
     },
@@ -396,11 +416,13 @@ async function handleApi(req, res, url) {
   }
 
   // Public: RSVP via the emailed capability link. The token is the auth — no login.
+  // ?event=virtual targets the Aug 9 online Buildathon (separate from offline).
   if (pathname === '/api/rsvp' && req.method === 'GET') {
     const token = url.searchParams.get('token') || '';
+    const virtual = url.searchParams.get('event') === 'virtual';
     const rec = token ? await db.getByToken(token) : null;
     if (!rec) return sendJSON(res, 404, { ok: false, error: 'invalid or expired link' });
-    return sendJSON(res, 200, { ok: true, firstName: (rec.fullName || '').split(' ')[0], track: rec.track || '', status: rec.status, rsvp: rec.rsvp });
+    return sendJSON(res, 200, { ok: true, firstName: (rec.fullName || '').split(' ')[0], track: rec.track || '', status: rec.status, rsvp: virtual ? rec.virtualRsvp : rec.rsvp });
   }
   if (pathname === '/api/rsvp' && req.method === 'POST') {
     const ip = clientIp(req);
@@ -409,10 +431,11 @@ async function handleApi(req, res, url) {
     try { body = await readBody(req); } catch (e) { return sendJSON(res, 400, { ok: false, error: e.message }); }
     const token = String(body.token || '');
     const response = String(body.response || '');
+    const virtual = String(body.event || '') === 'virtual';
     if (!['yes', 'no'].includes(response)) return sendJSON(res, 400, { ok: false, error: 'response must be yes or no' });
-    const rec = token ? await db.setRsvp(token, response) : null;
+    const rec = token ? await (virtual ? db.setVirtualRsvp(token, response) : db.setRsvp(token, response)) : null;
     if (!rec) return sendJSON(res, 404, { ok: false, error: 'invalid or expired link' });
-    return sendJSON(res, 200, { ok: true, rsvp: rec.rsvp, firstName: (rec.fullName || '').split(' ')[0] });
+    return sendJSON(res, 200, { ok: true, rsvp: virtual ? rec.virtualRsvp : rec.rsvp, firstName: (rec.fullName || '').split(' ')[0] });
   }
 
   // Everything below is admin-only
