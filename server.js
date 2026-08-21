@@ -480,6 +480,8 @@ async function handleApi(req, res, url) {
 
   // Public: certificate verification (scanned from the QR on the certificate).
   if (pathname === '/api/verify' && req.method === 'GET') {
+    // Rate-limit to blunt ID enumeration (only names are exposed, never PII).
+    if (!rateLimit(`verify:${clientIp(req)}`, 40, 60 * 1000)) return sendJSON(res, 429, { ok: false, error: 'Too many requests. Please try again shortly.' });
     const id = (url.searchParams.get('id') || '').trim();
     const cert = id ? await db.getCert(id) : null;
     if (!cert) return sendJSON(res, 200, { ok: true, valid: false });
