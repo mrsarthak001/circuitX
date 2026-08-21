@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Verify Certificate · Embedded · CraftifAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0A0D14; --navy-2:#111621; --teal:#0A84FF; --green:#1c8a4e; --red:#c0504d;
+    --cream:#ECEDF0; --muted:rgba(236,237,240,.60); --faint:rgba(236,237,240,.34);
+    --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.14);
+    --px:"JetBrains Mono", ui-monospace, monospace; --body:"Space Grotesk", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{background:var(--navy);color:var(--cream);font-family:var(--body);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;-webkit-font-smoothing:antialiased}
+  .grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(to right,rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.04) 1px,transparent 1px);background-size:66px 66px;-webkit-mask-image:radial-gradient(120% 80% at 50% -5%,#000 0%,rgba(0,0,0,.5) 45%,transparent 80%);mask-image:radial-gradient(120% 80% at 50% -5%,#000 0%,rgba(0,0,0,.5) 45%,transparent 80%);pointer-events:none}
+  .card{position:relative;z-index:1;width:100%;max-width:480px;background:var(--navy-2);border:1px solid var(--line);border-radius:18px;padding:34px 30px;text-align:center}
+  .brand{font-weight:700;font-size:20px;letter-spacing:-.5px;margin-bottom:2px}
+  .brand span{color:var(--teal)}
+  .sub{font-family:var(--px);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--faint);margin-bottom:24px}
+  .big{font-size:44px;line-height:1;margin-bottom:12px}
+  h1{font-weight:700;font-size:24px;letter-spacing:-.4px;margin:0 0 6px}
+  .name{font-size:26px;font-weight:700;color:#fff;margin:6px 0 2px}
+  .lead{color:var(--muted);font-size:15px;margin:8px 0 0}
+  .dl{margin:22px 0 0;text-align:left;border-top:1px solid var(--line);padding-top:16px}
+  .row{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 0}
+  .row .k{font-family:var(--px);font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--faint)}
+  .row .v{color:var(--cream);text-align:right}
+  .badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--px);font-size:12px;letter-spacing:.5px;text-transform:uppercase;border-radius:999px;padding:6px 13px;border:1px solid;margin-bottom:14px}
+  .badge.ok{color:#7ee0a6;border-color:rgba(28,138,78,.5)} .badge.ok::before{content:"";width:7px;height:7px;border-radius:50%;background:#2fbd6e}
+  .badge.bad{color:#f0b6b4;border-color:rgba(192,80,77,.5)} .badge.bad::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}
+  .foot{margin-top:24px;font-family:var(--px);font-size:11px;color:var(--faint)}
+  .foot a{color:var(--muted);text-decoration:none}
+  .spin{display:inline-block;width:22px;height:22px;border:2px solid var(--line-2);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="card">
+  <div class="brand">Embedde<span>d</span></div>
+  <div class="sub">Certificate Verification · CraftifAI</div>
+  <div id="content"><div class="spin" aria-label="Checking"></div></div>
+  <div class="foot">CraftifAI &times; DevAarambh · <a href="index.html">embedded</a></div>
+</div>
+<script>
+(function(){
+  var id=(new URLSearchParams(location.search).get('id')||'').trim();
+  var content=document.getElementById('content');
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  function fmt(iso){ try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return ''; } }
+  function invalid(){
+    content.innerHTML='<div class="big">⚠️</div><div class="badge bad">Not verified</div>'
+      + '<h1>Certificate not found</h1>'
+      + '<p class="lead">We couldn’t verify a certificate for this code. Check the ID or scan the QR again. If you believe this is an error, reply to your certificate email.</p>';
+  }
+  function valid(d){
+    var rows='<div class="row"><span class="k">Event</span><span class="v">'+esc(d.event||'CraftifAI Embedded Buildathon 2026')+'</span></div>'
+      + (d.track?'<div class="row"><span class="k">Track</span><span class="v">'+esc(d.track)+'</span></div>':'')
+      + (d.issuedAt?'<div class="row"><span class="k">Issued</span><span class="v">'+esc(fmt(d.issuedAt))+'</span></div>':'')
+      + '<div class="row"><span class="k">Certificate ID</span><span class="v">'+esc(id)+'</span></div>';
+    content.innerHTML='<div class="big">✅</div><div class="badge ok">Verified</div>'
+      + '<h1>Genuine certificate</h1>'
+      + '<div class="lead">This certificate of participation was issued to</div>'
+      + '<div class="name">'+esc(d.name)+'</div>'
+      + '<div class="dl">'+rows+'</div>';
+  }
+  if(!id){ invalid(); return; }
+  fetch('/api/verify?id='+encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(d && d.ok && d.valid) valid(d); else invalid(); })
+    .catch(invalid);
+})();
+</script>
+</body>
+</html>

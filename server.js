@@ -130,6 +130,15 @@ function makePgStore(connString, PoolClass) {
         await pool.query('UPDATE registrations SET rsvp_token=$1 WHERE id=$2', [genToken(), r.id]);
       }
       await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS registrations_rsvp_token_idx ON registrations(rsvp_token)');
+      // Certificates: one row per issued certificate, looked up by the QR id.
+      await pool.query(`CREATE TABLE IF NOT EXISTS certificates (
+        cert_id    TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        email      TEXT,
+        event      TEXT,
+        track      TEXT,
+        issued_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`);
     },
     async create(f) {
       const { rows } = await pool.query(
@@ -190,6 +199,19 @@ function makePgStore(connString, PoolClass) {
     },
     async markVirtualInvited(id) {
       await pool.query('UPDATE registrations SET virtual_invited=true WHERE id=$1', [id]);
+    },
+    async createCert(c) {
+      await pool.query(
+        `INSERT INTO certificates (cert_id,name,email,event,track) VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (cert_id) DO UPDATE SET name=EXCLUDED.name, email=EXCLUDED.email, event=EXCLUDED.event, track=EXCLUDED.track`,
+        [c.certId, c.name, c.email || null, c.event || null, c.track || null]
+      );
+    },
+    async getCert(id) {
+      const { rows } = await pool.query('SELECT * FROM certificates WHERE cert_id=$1', [id]);
+      if (!rows.length) return null;
+      const r = rows[0];
+      return { certId: r.cert_id, name: r.name, email: r.email, event: r.event, track: r.track, issuedAt: (r.issued_at instanceof Date ? r.issued_at.toISOString() : r.issued_at) };
     },
   };
 }
@@ -274,6 +296,14 @@ function makeJsonStore() {
     async markVirtualInvited(id) {
       const rec = state.registrations.find((r) => r.id === id);
       if (rec) { rec.virtualInvited = true; persist(); }
+    },
+    async createCert(c) {
+      state.certificates = state.certificates || {};
+      state.certificates[c.certId] = { certId: c.certId, name: c.name, email: c.email || null, event: c.event || null, track: c.track || null, issuedAt: new Date().toISOString() };
+      persist();
+    },
+    async getCert(id) {
+      return (state.certificates && state.certificates[id]) || null;
     },
   };
 }
@@ -446,6 +476,14 @@ async function handleApi(req, res, url) {
     const rec = token ? await (virtual ? db.setVirtualRsvp(token, response) : db.setRsvp(token, response)) : null;
     if (!rec) return sendJSON(res, 404, { ok: false, error: 'invalid or expired link' });
     return sendJSON(res, 200, { ok: true, rsvp: virtual ? rec.virtualRsvp : rec.rsvp, firstName: (rec.fullName || '').split(' ')[0] });
+  }
+
+  // Public: certificate verification (scanned from the QR on the certificate).
+  if (pathname === '/api/verify' && req.method === 'GET') {
+    const id = (url.searchParams.get('id') || '').trim();
+    const cert = id ? await db.getCert(id) : null;
+    if (!cert) return sendJSON(res, 200, { ok: true, valid: false });
+    return sendJSON(res, 200, { ok: true, valid: true, name: cert.name, event: cert.event, track: cert.track, issuedAt: cert.issuedAt });
   }
 
   // Everything below is admin-only
